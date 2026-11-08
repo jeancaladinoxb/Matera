@@ -64,6 +64,9 @@ class FakeTokenProvider(TokenProviderPort):
         self.user_ids.append(usuario_id)
         return "token-for-{}".format(usuario_id)
 
+    def verificar_token(self, token: str) -> int:
+        return int(token.rsplit("-", 1)[1])
+
 
 class RegistrarUsuarioUseCaseTests(unittest.TestCase):
     def setUp(self) -> None:

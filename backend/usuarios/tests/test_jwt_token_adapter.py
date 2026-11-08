@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import jwt
 
+from backend.usuarios.domain import InvalidTokenError
 from backend.usuarios.infrastructure.adapters.jwt_token_adapter import (
     JwtTokenAdapter,
     jwt_token_adapter_from_environment,
@@ -69,6 +70,39 @@ class JwtTokenAdapterTests(unittest.TestCase):
 
         with self.assertRaises(jwt.ExpiredSignatureError):
             jwt.decode(expired_token, TEST_SECRET, algorithms=["HS256"])
+
+
+class JwtTokenAdapterVerificationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.adapter = JwtTokenAdapter(TEST_SECRET, 5)
+
+    def _encode(self, claims, secret=TEST_SECRET):
+        now = datetime.now(timezone.utc)
+        base = {"iat": now, "exp": now + timedelta(hours=1)}
+        return jwt.encode({**base, **claims}, secret, algorithm="HS256")
+
+    def test_valid_token_returns_user_id(self) -> None:
+        token = self.adapter.generar_token(42)
+        self.assertEqual(self.adapter.verificar_token(token), 42)
+
+    def test_invalid_tokens_are_rejected(self) -> None:
+        now = datetime.now(timezone.utc)
+        expired = jwt.encode(
+            {"sub": "1", "exp": now - timedelta(hours=1)}, TEST_SECRET, algorithm="HS256"
+        )
+        cases = {
+            "garbage": "not-a-jwt",
+            "empty": "",
+            "expired": expired,
+            "wrong secret": self._encode({"sub": "1"}, "other-secret-that-is-long-enough-xx"),
+            "no sub": self._encode({}),
+            "non numeric sub": self._encode({"sub": "246F28AB1234"}),
+            "device role": self._encode({"sub": "1", "role": "device"}),
+            "alg none": jwt.encode({"sub": "1"}, None, algorithm="none"),
+        }
+        for name, token in cases.items():
+            with self.subTest(name), self.assertRaises(InvalidTokenError):
+                self.adapter.verificar_token(token)
 
 
 if __name__ == "__main__":

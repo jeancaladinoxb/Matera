@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 
 from backend.usuarios.application.ports.output import TokenProviderPort
+from backend.usuarios.domain import InvalidTokenError
 
 
 _ALGORITHM = "HS256"
@@ -36,6 +37,25 @@ class JwtTokenAdapter(TokenProviderPort):
             "exp": issued_at + self._expiration,
         }
         return jwt.encode(payload, self._secret, algorithm=_ALGORITHM)
+
+    def verificar_token(self, token: str) -> int:
+        try:
+            claims = jwt.decode(
+                token,
+                self._secret,
+                algorithms=[_ALGORITHM],
+                options={"require": ["exp", "sub"]},
+            )
+        except jwt.InvalidTokenError:
+            raise InvalidTokenError() from None
+
+        subject = claims["sub"]
+        # Device tokens carry a role and a MAC as subject: never valid here.
+        if "role" in claims or not (
+            isinstance(subject, str) and subject.isascii() and subject.isdigit()
+        ):
+            raise InvalidTokenError()
+        return int(subject)
 
 
 def jwt_token_adapter_from_environment() -> JwtTokenAdapter:

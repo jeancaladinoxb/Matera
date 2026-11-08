@@ -5,6 +5,7 @@ from .errors import (
     InvalidCredentialsError,
     InvalidEmailError,
     InvalidPasswordError,
+    InvalidTokenError,
     MissingRequiredFieldError,
     ValidationError,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "InvalidCredentialsError",
     "InvalidEmailError",
     "InvalidPasswordError",
+    "InvalidTokenError",
     "MissingRequiredFieldError",
     "Password",
     "Usuario",

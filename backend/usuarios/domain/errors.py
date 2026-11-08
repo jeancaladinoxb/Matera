@@ -32,3 +32,8 @@ class EmailAlreadyRegisteredError(DomainError):
 class InvalidCredentialsError(DomainError):
     def __init__(self) -> None:
         super().__init__("Credenciales inválidas.")
+
+
+class InvalidTokenError(DomainError):
+    def __init__(self) -> None:
+        super().__init__("Token inválido.")
