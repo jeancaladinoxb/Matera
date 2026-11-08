@@ -246,16 +246,4 @@ esta variable a una base de producción.
   estaba registrado.
 - Agregar verificación de correo y recuperación de contraseña.
 
-## Diagramas
 
-Los diagramas se agregarán en `docs/`:
-
-- [Arquitectura hexagonal](docs/hexagono-usuarios.png)
-- [Flujo de gestión de usuarios](docs/flujo-usuarios.png)
-- [Esquema de base de datos](docs/base-datos-usuarios.png)
-
-## Cambios futuros en la base de datos
-
-No edites scripts de esquema que ya se hayan aplicado. Para cada cambio crea
-una migración nueva y ordenada, por ejemplo `db/002_...sql` y
-`db/003_...sql`, y aplícalas en orden.
