@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba de usuarios</title>
+  <style>
+    body { font: 16px system-ui, sans-serif; margin: 2rem auto; max-width: 42rem; padding: 0 1rem; }
+    form { border: 1px solid #bbb; border-radius: .5rem; margin: 1rem 0; padding: 1rem; }
+    label { display: block; margin: .75rem 0; }
+    input { box-sizing: border-box; display: block; margin-top: .25rem; max-width: 100%; padding: .4rem; width: 24rem; }
+    button { padding: .5rem .8rem; }
+    pre { background: #f3f3f3; min-height: 3rem; overflow-wrap: anywhere; padding: 1rem; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Prueba de usuarios</h1>
+
+  <form data-endpoint="/registro">
+    <h2>Registro</h2>
+    <label>Nombre <input name="nombre" required></label>
+    <label>Apellido <input name="apellido" required></label>
+    <label>Nickname <input name="nickname" required></label>
+    <label>Correo <input name="correo" type="email" required></label>
+    <label>Contraseña <input name="contrasena" type="password" required></label>
+    <button type="submit">Registrar</button>
+  </form>
+
+  <form data-endpoint="/login">
+    <h2>Inicio de sesión</h2>
+    <label>Correo <input name="correo" type="email" required></label>
+    <label>Contraseña <input name="contrasena" type="password" required></label>
+    <button type="submit">Iniciar sesión</button>
+  </form>
+
+  <h2>Respuesta</h2>
+  <pre id="response" aria-live="polite">Envía un formulario para ver el resultado.</pre>
+
+  <script>
+    const responseBox = document.getElementById("response");
+
+    document.querySelectorAll("form[data-endpoint]").forEach((form) => {
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const body = Object.fromEntries(new FormData(form).entries());
+
+        try {
+          const response = await fetch(form.dataset.endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const json = await response.json();
+          responseBox.textContent = `HTTP ${response.status}\n${JSON.stringify(json, null, 2)}`;
+        } catch (error) {
+          responseBox.textContent = `Error de solicitud: ${error.message}`;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
