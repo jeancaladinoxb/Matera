@@ -17,6 +17,8 @@ _ENVIRONMENT = {
     "DB_PASSWORD": "fake-password",
     "JWT_SECRET": "fake-secret-that-is-long-enough-for-hs256",
     "JWT_EXPIRATION_HOURS": "5",
+    "CLAIM_MASTER_KEY": "fake-claim-master-key-that-is-long-enough",
+    "DEVICE_JWT_SECRET": "fake-device-secret-that-is-long-enough-1",
 }
 
 
@@ -37,6 +39,8 @@ def test_create_app_loads_backend_env_and_registers_endpoints(monkeypatch) -> No
     load_dotenv.assert_called_once_with(Path(app_module.__file__).resolve().parent / ".env")
     assert app.test_client().post("/registro").status_code == 400
     assert app.test_client().post("/login").status_code == 400
+    assert app.test_client().post("/materas/vincular").status_code == 401
+    assert app.test_client().post("/dispositivos/activar").status_code == 400
 
 
 def test_create_app_fails_with_names_of_missing_database_variables(monkeypatch) -> None:
@@ -125,3 +129,13 @@ def test_development_test_page_is_absent_in_production(monkeypatch) -> None:
     response = app_module.create_app().test_client().get("/dev/test")
 
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize("variable", ["CLAIM_MASTER_KEY", "DEVICE_JWT_SECRET"])
+def test_create_app_fails_with_name_of_missing_matera_variable(monkeypatch, variable) -> None:
+    _set_fake_environment(monkeypatch)
+    monkeypatch.delenv(variable)
+    monkeypatch.setattr(app_module, "load_dotenv", Mock())
+
+    with pytest.raises(ValueError, match=variable):
+        app_module.create_app()

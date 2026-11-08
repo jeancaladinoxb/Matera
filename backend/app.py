@@ -4,6 +4,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask, send_file
 
+from backend.materas.application.use_cases import (
+    ActivarDispositivoUseCase,
+    VincularMateraUseCase,
+)
+from backend.materas.infrastructure.adapters import PostgresMateraRepositoryAdapter
+from backend.materas.infrastructure.adapters.hmac_claim_verifier import (
+    hmac_claim_verifier_from_environment,
+)
+from backend.materas.infrastructure.adapters.jwt_device_token_adapter import (
+    jwt_device_token_adapter_from_environment,
+)
+from backend.materas.infrastructure.controllers import MateraController
 from backend.usuarios.application.use_cases import (
     IniciarSesionUseCase,
     RegistrarUsuarioUseCase,
@@ -42,8 +54,21 @@ def create_app() -> Flask:
         token_provider,
     )
 
+    connection_factory = connection_factory_from_environment()
+    matera_repository = PostgresMateraRepositoryAdapter(connection_factory)
+    claim_code_verifier = hmac_claim_verifier_from_environment()
+    device_token_provider = jwt_device_token_adapter_from_environment()
+
+    vincular_matera = VincularMateraUseCase(
+        matera_repository, claim_code_verifier, token_provider
+    )
+    activar_dispositivo = ActivarDispositivoUseCase(
+        matera_repository, claim_code_verifier, device_token_provider
+    )
+
     app = Flask(__name__)
     WebAppController(registrar_usuario, iniciar_sesion).register_routes(app)
+    MateraController(vincular_matera, activar_dispositivo).register_routes(app)
     if _development_tools_enabled():
         test_page = Path(__file__).resolve().parent / "dev_tools" / "test_page.html"
         app.add_url_rule(

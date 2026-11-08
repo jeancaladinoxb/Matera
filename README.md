@@ -30,6 +30,7 @@ Estructura relevante del proyecto:
 │   │   └── test_page.html
 │   ├── tests/
 │   │   └── test_app.py
+│   ├── materas/              # mismas capas que usuarios + cli.py
 │   └── usuarios/
 │       ├── domain/
 │       │   ├── email.py
@@ -47,7 +48,8 @@ Estructura relevante del proyecto:
 │       │   └── controllers/
 │       └── tests/
 ├── db/
-│   └── 001_usuarios.sql
+│   ├── 001_usuarios.sql
+│   └── 002_materas.sql
 ├── pytest.ini
 ├── requirements.txt
 └── README.md
@@ -87,10 +89,11 @@ Desde la raíz del repositorio:
    createdb matera
    ```
 
-3. Crea la tabla ejecutando el script:
+3. Crea las tablas ejecutando los scripts en orden:
 
    ```bash
    psql -d matera -f db/001_usuarios.sql
+   psql -d matera -f db/002_materas.sql
    ```
 
 4. Copia el ejemplo de configuración y completa `backend/.env` localmente:
@@ -106,6 +109,11 @@ Desde la raíz del repositorio:
    ```bash
    python -c "import secrets; print(secrets.token_urlsafe(48))"
    ```
+
+   Para las materas configura además `CLAIM_MASTER_KEY` (clave maestra con la
+   que se derivan los códigos de las materas; al menos 32 caracteres, no sale
+   del servidor) y `DEVICE_JWT_SECRET` (al menos 32 caracteres y **distinto** de
+   `JWT_SECRET`). `DEVICE_JWT_EXPIRATION_DAYS` es opcional (365 por defecto).
 
    `JWT_EXPIRATION_HOURS` es obligatoria para el arranque; configura `5` para
    tokens de cinco horas. El `.env` está excluido de Git; no lo compartas ni lo
@@ -195,6 +203,77 @@ como bearer token y enviarlo en `Authorization: Bearer <JWT>` a las rutas que
 requieran autenticación. Actualmente registro e inicio de sesión son las rutas
 expuestas; no hay todavía rutas protegidas.
 
+## Gestión de materas
+
+Módulo `backend/materas/` (mismas capas `domain`, `application`,
+`infrastructure` que usuarios). Vincula una matera física (ESP32) con un
+usuario. El BLE y el WiFi los manejan la ESP32 y la app; no forman parte de
+este backend.
+
+Flujo: (0) en fábrica se registra la MAC como `sin_reclamar` y se obtiene su
+código; (1) el usuario hace login; (2) la app escanea el QR y llama
+`POST /materas/vincular`; (3) la ESP32 llama `POST /dispositivos/activar` y
+recibe su token.
+
+Reglas: la MAC se normaliza a 12 hexadecimales en mayúsculas sin separadores
+(`24:6f:28:ab:12:34` → `246F28AB1234`). El código es
+`HMAC_SHA256(CLAIM_MASTER_KEY, MAC)` en hexadecimal minúscula, primeros 12
+caracteres; nunca se guarda, se recalcula. Una matera vinculada no puede
+reclamarse otra vez (el reclamo es un único `UPDATE ... WHERE usuario_id IS NULL`).
+
+### Registrar una matera de fábrica
+
+Fuera de la API HTTP, con el mismo `backend/.env`:
+
+```bash
+./.venv/bin/python -m backend.materas.cli 24:6F:28:AB:12:34
+# stdout: MAT:246F28AB1234:<codigo>   (payload del QR; es un secreto, no lo registres)
+```
+
+Es idempotente: si la MAC ya existe no se duplica ni se modifica.
+
+### `POST /materas/vincular`
+
+Header `Authorization: Bearer <JWT de usuario>`; cuerpo `{"mac": "...", "codigo": "..."}`.
+El `user_id` sale solo del token.
+
+### `POST /dispositivos/activar`
+
+Cuerpo `{"mac": "...", "codigo": "..."}`. Responde `{"token": "<JWT de dispositivo>"}`
+(`sub` = MAC, `role` = `device`, firmado con `DEVICE_JWT_SECRET`; un token de
+usuario no sirve como de dispositivo ni al revés). Se puede llamar varias veces:
+cada llamada emite un token nuevo.
+
+| Código HTTP | Significado |
+|---|---|
+| `200` | Éxito (`{"mensaje": "Matera vinculada"}` o `{"token": ...}`) |
+| `400` | Cuerpo o formato de MAC inválido |
+| `401` | JWT ausente, inválido o vencido (solo vincular) |
+| `404` | `{"error": "Matera o código inválido"}` (código incorrecto o matera inexistente, mismo mensaje) |
+| `409` | Matera ya vinculada (vincular) o aún no vinculada (activar) |
+| `500` | Error interno genérico |
+
+Prueba manual con `curl` (puerto `5001`, usuario ya registrado):
+
+```bash
+# 0. Fábrica
+./.venv/bin/python -m backend.materas.cli 24:6F:28:AB:12:34   # -> MAT:246F28AB1234:<CODIGO>
+
+# 1. Login
+TOKEN=$(curl -s -X POST http://127.0.0.1:5001/login -H 'Content-Type: application/json' \
+  -d '{"correo":"ana@example.com","contrasena":"Clave123"}' | python -c 'import sys,json; print(json.load(sys.stdin)["token"])')
+
+# 2. Vincular (la app, con MAC y código del QR)
+curl -i -X POST http://127.0.0.1:5001/materas/vincular \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"mac":"24:6F:28:AB:12:34","codigo":"<CODIGO>"}'
+
+# 3. Activar (simula a la ESP32)
+curl -i -X POST http://127.0.0.1:5001/dispositivos/activar \
+  -H 'Content-Type: application/json' \
+  -d '{"mac":"246F28AB1234","codigo":"<CODIGO>"}'
+```
+
 ## Página de prueba
 
 Con `APP_ENV=development` o `FLASK_DEBUG=1`, abre
@@ -221,7 +300,7 @@ export TEST_DATABASE_URL='postgresql://USUARIO:CONTRASENA@HOST:5432/BASE_DE_PRUE
 pytest -m integration
 ```
 
-Sin `TEST_DATABASE_URL`, las tres pruebas de integración se omiten. No apuntes
+Sin `TEST_DATABASE_URL`, las pruebas de integración se omiten. No apuntes
 esta variable a una base de producción.
 
 ## Decisiones de diseño
