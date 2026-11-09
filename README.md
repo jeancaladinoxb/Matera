@@ -25,7 +25,6 @@ Estructura relevante del proyecto:
 .
 ├── backend/
 │   ├── app.py
-│   ├── .env.example
 │   ├── dev_tools/
 │   │   └── test_page.html
 │   ├── tests/
@@ -96,15 +95,10 @@ Desde la raíz del repositorio:
    psql -d matera -f db/002_materas.sql
    ```
 
-4. Copia el ejemplo de configuración y completa `backend/.env` localmente:
-
-   ```bash
-   cp backend/.env.example backend/.env
-   ```
-
-   Configura `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` y `DB_PASSWORD` para tu
-   PostgreSQL. Configura `JWT_SECRET` con un valor secreto de al menos 32
-   caracteres. Puedes generar uno con:
+4. Crea `backend/.env` localmente (no lo agregues a Git) y configura
+   `DB_HOST`, `DB_PORT`, `DB_NAME` y `DB_USER` para tu PostgreSQL, junto con
+   `DB_PASSWORD`. Configura `JWT_SECRET` con un valor secreto de al menos 32
+   caracteres. Puedes generar uno localmente con:
 
    ```bash
    python -c "import secrets; print(secrets.token_urlsafe(48))"
@@ -324,5 +318,4 @@ esta variable a una base de producción.
   registro válida que recibe `400` puede permitir inferir que el correo ya
   estaba registrado.
 - Agregar verificación de correo y recuperación de contraseña.
-
 
