@@ -7,5 +7,6 @@ CREATE TABLE usuarios (
     password_hash  VARCHAR(255) NOT NULL,
     fecha_creacion TIMESTAMP NOT NULL DEFAULT now(),
     CONSTRAINT usuarios_pk PRIMARY KEY (id),
-    CONSTRAINT usuarios_correo_un UNIQUE (correo)
+    CONSTRAINT usuarios_correo_un UNIQUE (correo),
+    CONSTRAINT usuarios_nickname_un UNIQUE (nickname)
 );
