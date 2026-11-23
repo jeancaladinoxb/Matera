@@ -6,6 +6,7 @@ from flask import Flask, make_response, request, send_file
 
 from backend.materas.application.use_cases import (
     ActivarDispositivoUseCase,
+    ConsultarMateraDelUsuarioUseCase,
     VincularMateraUseCase,
 )
 from backend.materas.infrastructure.adapters import PostgresMateraRepositoryAdapter
@@ -65,6 +66,9 @@ def create_app() -> Flask:
     vincular_matera = VincularMateraUseCase(
         matera_repository, claim_code_verifier, token_provider
     )
+    consultar_matera_del_usuario = ConsultarMateraDelUsuarioUseCase(
+        matera_repository, token_provider
+    )
     activar_dispositivo = ActivarDispositivoUseCase(
         matera_repository, claim_code_verifier, device_token_provider
     )
@@ -77,7 +81,12 @@ def create_app() -> Flask:
         token_provider,
         _session_cookie_settings(token_provider),
     ).register_routes(app)
-    MateraController(vincular_matera, activar_dispositivo).register_routes(app)
+    MateraController(
+        vincular_matera,
+        activar_dispositivo,
+        consultar_matera_del_usuario,
+        os.environ.get("SESSION_COOKIE_NAME", "cuida_mate_session"),
+    ).register_routes(app)
     if _development_tools_enabled():
         test_page = Path(__file__).resolve().parent / "dev_tools" / "test_page.html"
         app.add_url_rule(

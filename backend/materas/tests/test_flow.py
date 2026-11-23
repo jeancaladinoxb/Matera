@@ -35,16 +35,21 @@ class VinculacionFlowTests(unittest.TestCase):
         self.body = {"mac": "246f28ab1234", "codigo": verifier.generar(Mac("246F28AB1234"))}
 
     def test_factory_to_device_token(self) -> None:
-        auth = {"Authorization": "Bearer " + self.user_tokens.generar_token(7)}
-
         early = self.client.post("/dispositivos/activar", json=self.body)
         self.assertEqual(early.status_code, 409)
 
-        self.assertEqual(self.client.post("/materas/vincular", json=self.body, headers=auth).status_code, 200)
+        self.client.set_cookie("cuida_mate_session", self.user_tokens.generar_token(7))
+        self.assertEqual(
+            self.client.post("/materas/vincular", json=self.body).status_code,
+            200,
+        )
         self.assertEqual(self.repository.materas["246F28AB1234"].usuario_id, 7)
 
-        other = {"Authorization": "Bearer " + self.user_tokens.generar_token(8)}
-        self.assertEqual(self.client.post("/materas/vincular", json=self.body, headers=other).status_code, 409)
+        self.client.set_cookie("cuida_mate_session", self.user_tokens.generar_token(8))
+        self.assertEqual(
+            self.client.post("/materas/vincular", json=self.body).status_code,
+            409,
+        )
 
         activated = self.client.post("/dispositivos/activar", json=self.body)
         self.assertEqual(activated.status_code, 200)
@@ -53,16 +58,18 @@ class VinculacionFlowTests(unittest.TestCase):
 
     def test_device_token_cannot_link_and_wrong_code_is_404(self) -> None:
         device_token = JwtDeviceTokenAdapter(DEVICE_SECRET).generar_token(Mac("246F28AB1234"))
-        response = self.client.post(
-            "/materas/vincular", json=self.body, headers={"Authorization": "Bearer " + device_token}
-        )
+        self.client.set_cookie("cuida_mate_session", device_token)
+        response = self.client.post("/materas/vincular", json=self.body)
         self.assertEqual(response.status_code, 401)
 
-        auth = {"Authorization": "Bearer " + self.user_tokens.generar_token(7)}
+        self.client.set_cookie(
+            "cuida_mate_session",
+            self.user_tokens.generar_token(7),
+        )
         bad = {"mac": "246F28AB1234", "codigo": "000000000000"}
         unknown = {"mac": "AAAAAAAAAAAA", "codigo": "000000000000"}
         for body in (bad, unknown):
-            r = self.client.post("/materas/vincular", json=body, headers=auth)
+            r = self.client.post("/materas/vincular", json=body)
             self.assertEqual((r.status_code, r.get_json()), (404, {"error": "Matera o código inválido"}))
 
 

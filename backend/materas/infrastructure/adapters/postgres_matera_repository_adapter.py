@@ -19,6 +19,23 @@ class PostgresMateraRepositoryAdapter(MateraRepositoryPort):
     ) -> None:
         self._connection_factory = connection_factory
 
+    def buscar_por_usuario(self, usuario_id: int) -> Optional[Matera]:
+        row, _ = self._execute(
+            "SELECT mac, usuario_id, estado, fecha_vinculacion "
+            "FROM materas WHERE usuario_id = %s "
+            "AND estado = 'vinculada' LIMIT 1",
+            (usuario_id,),
+            fetch_one=True,
+        )
+        if row is None:
+            return None
+        return Matera(
+            mac=Mac(row[0]),
+            usuario_id=row[1],
+            estado=EstadoMatera(row[2]),
+            fecha_vinculacion=row[3],
+        )
+
     def buscar_por_mac(self, mac: Mac) -> Optional[Matera]:
         row, _ = self._execute(
             "SELECT mac, usuario_id, estado, fecha_vinculacion "

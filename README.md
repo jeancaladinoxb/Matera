@@ -12,6 +12,10 @@ frontend React construido con arquitectura hexagonal.
 - Permite iniciar sesión con mensajes genéricos y seguros ante errores de
   credenciales.
 - Mantiene la sesión en una cookie `HttpOnly` emitida por el backend.
+- Vincula materas físicas mediante escaneo QR o ingreso manual de MAC y código.
+- Consulta si el usuario ya tiene una matera vinculada después del inicio de
+  sesión y protege la ruta de vinculación.
+- Permite omitir la vinculación mediante la opción "Más tarde".
 - Renueva automáticamente el JWT cada 15 minutos sin interrumpir al usuario.
 - Reintenta los refrescos afectados por problemas de red mediante backoff
   exponencial.
@@ -41,6 +45,7 @@ frontend React construido con arquitectura hexagonal.
 - Vite
 - React Router
 - Vitest
+- `html5-qrcode`
 - Fetch API
 - CSS con variables de diseño, `backdrop-filter` y animaciones
 - Arquitectura hexagonal con dominio, aplicación e infraestructura
@@ -198,6 +203,58 @@ renovar o `401` si el backend rechaza explícitamente la sesión.
 
 Cierra la sesión y expira la cookie. Responde `204`.
 
+## API de materas
+
+### `POST /materas/vincular`
+
+Vincula una matera al usuario autenticado por cookie. El cuerpo contiene la
+dirección MAC y el código de vinculación:
+
+```json
+{
+  "mac": "24:6F:28:AB:12:34",
+  "codigo": "9f3a1c7e0b52"
+}
+```
+
+Respuestas principales:
+
+- `200`: matera vinculada.
+- `400`: MAC, código o cuerpo inválido.
+- `401`: sesión vencida o cookie ausente.
+- `404`: matera inexistente o código inválido.
+- `409`: la matera ya está vinculada.
+- `500`: error interno genérico.
+
+Este endpoint ya no requiere ni acepta un JWT de usuario en `Authorization`.
+La autenticación se obtiene exclusivamente de la cookie `HttpOnly` configurada
+por el backend.
+
+### `GET /materas/mias`
+
+Consulta si el usuario autenticado tiene una matera vinculada.
+
+```json
+{
+  "vinculada": true,
+  "mac": "246F28AB1234"
+}
+```
+
+Cuando no existe una vinculación responde:
+
+```json
+{
+  "vinculada": false,
+  "mac": null
+}
+```
+
+### `POST /dispositivos/activar`
+
+Permite activar una matera ya vinculada. Recibe MAC y código y devuelve un JWT
+exclusivo para el dispositivo ESP32.
+
 ## Reglas de validación
 
 - El correo se recorta y convierte a minúsculas.
@@ -212,6 +269,9 @@ Cierra la sesión y expira la cookie. Responde `204`.
 ## Sesión y seguridad
 
 - Login y refresh usan `credentials: "include"` en el frontend.
+- Vinculación y consulta de materas usan la misma cookie de sesión mediante
+  `credentials: "include"`; el código de vinculación nunca se guarda en
+  `localStorage`, URL ni logs.
 - La cookie es `HttpOnly`, por lo que JavaScript no puede leerla ni escribirla.
 - `Secure` se activa por defecto en producción.
 - CORS usa una lista explícita de orígenes configurados por entorno.
@@ -222,9 +282,19 @@ Cierra la sesión y expira la cookie. Responde `204`.
 
 ## Gestión de materas
 
-El módulo `backend/materas/` mantiene las mismas capas hexagonales.
+El módulo `backend/materas/` mantiene las mismas capas hexagonales. El frontend
+también usa capas `dominio`, `aplicacion` e `infraestructura` dentro de
+`frontend/materas/`.
 
 - Una MAC se normaliza a doce caracteres hexadecimales en mayúsculas.
+- Una MAC acepta separadores `:`, `-` o `.` y se convierte sin separadores.
+- El código de vinculación debe tener exactamente 12 caracteres hexadecimales.
+- El texto QR tiene el formato `MAT:<MAC>:<codigo>`.
+- El frontend ofrece escaneo con cámara y entrada manual.
+- El escaneo usa `html5-qrcode` y requiere HTTPS o `localhost` en el navegador.
+- Tras iniciar sesión, la aplicación consulta `/materas/mias`.
+- Si no existe una vinculación, redirige a `/materas/vincular`.
+- “Más tarde” permite continuar sin vincular a `/inicio`.
 - El código se deriva con HMAC-SHA256 usando la clave maestra.
 - `POST /materas/vincular` vincula una matera a un usuario autenticado.
 - `POST /dispositivos/activar` entrega un token JWT exclusivo para el dispositivo.
@@ -255,5 +325,6 @@ correctamente.
 - `/registro`: formulario de creación de cuenta.
 - `/login`: formulario de inicio de sesión.
 - `/inicio`: pantalla principal mínima y cierre de sesión.
+- `/materas/vincular`: vinculación mediante cámara QR o datos manuales.
 
 El proyecto usa React Router y admite navegación directa a esas rutas.

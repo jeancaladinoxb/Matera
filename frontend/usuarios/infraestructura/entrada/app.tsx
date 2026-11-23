@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -8,6 +8,8 @@ import {
 
 import { ComposicionUsuarios } from "../composicion/composicion-root";
 import { EventoSesion } from "../salida/session-http-adapter";
+import { ConsultarMateraDelUsuarioPort } from "../../../materas/aplicacion/puertos/entrada/consultar-matera-del-usuario-port";
+import { VincularMateraUIAdapter } from "../../../materas/infraestructura/entrada/vincular-matera-ui-adapter";
 import { PantallaPrincipal } from "./pantalla-principal";
 import { RegistroUIAdapter } from "./registro-ui-adapter";
 import { SesionUIAdapter } from "./sesion-ui-adapter";
@@ -21,6 +23,61 @@ function mensajeDeEventoSesion(evento: EventoSesion): string {
     return "El servidor rechazó la renovación de la sesión. No la cerraremos automáticamente; revisa el estado antes de continuar.";
   }
   return "No pudimos completar la renovación de la sesión. Tu sesión no se cerró automáticamente.";
+}
+
+function ProteccionSesion({
+  consultar,
+  vincularSiFalta,
+  children,
+}: {
+  consultar: ConsultarMateraDelUsuarioPort;
+  vincularSiFalta: boolean;
+  children: ReactNode;
+}) {
+  const [estado, setEstado] = useState<
+    "cargando" | "permitido" | "login" | "inicio"
+  >("cargando");
+
+  useEffect(() => {
+    let activo = true;
+    void consultar.consultarMateraDelUsuario().then((resultado) => {
+      if (!activo) return;
+      if (
+        resultado.estado === "error" &&
+        resultado.error.tipo === "sesion_vencida"
+      ) {
+        setEstado("login");
+      } else if (
+        vincularSiFalta &&
+        resultado.estado === "exito" &&
+        resultado.valor.vinculada
+      ) {
+        setEstado("inicio");
+      } else if (resultado.estado === "error") {
+        setEstado("permitido");
+      } else {
+        setEstado("permitido");
+      }
+    });
+    return () => {
+      activo = false;
+    };
+  }, [consultar, vincularSiFalta]);
+
+  if (estado === "cargando") {
+    return (
+      <section className="auth-card" aria-live="polite">
+        <p role="status">Consultando tu matera…</p>
+      </section>
+    );
+  }
+  if (estado === "login") {
+    return <Navigate replace to="/login" />;
+  }
+  if (estado === "inicio") {
+    return <Navigate replace to="/inicio" />;
+  }
+  return <>{children}</>;
 }
 
 export function App({ composicion }: PropsApp) {
@@ -72,14 +129,46 @@ export function App({ composicion }: PropsApp) {
             path="/registro"
           />
           <Route
-            element={<SesionUIAdapter iniciarSesion={composicion.iniciarSesion} />}
+            element={
+              <SesionUIAdapter
+                consultarMateraDelUsuario={
+                  composicion.consultarMateraDelUsuario
+                }
+                iniciarSesion={composicion.iniciarSesion}
+              />
+            }
             path="/login"
           />
           <Route
             element={
-              <PantallaPrincipal cerrarSesion={composicion.cerrarSesion} />
+              <ProteccionSesion
+                consultar={
+                  composicion.consultarMateraDelUsuario
+                }
+                vincularSiFalta={false}
+              >
+                <PantallaPrincipal cerrarSesion={composicion.cerrarSesion} />
+              </ProteccionSesion>
             }
             path="/inicio"
+          />
+          <Route
+            element={
+              <ProteccionSesion
+                consultar={
+                  composicion.consultarMateraDelUsuario
+                }
+                vincularSiFalta
+              >
+                <VincularMateraUIAdapter
+                  vincularDesdeQr={
+                    composicion.vincularMateraDesdeQr
+                  }
+                  vincularMatera={composicion.vincularMatera}
+                />
+              </ProteccionSesion>
+            }
+            path="/materas/vincular"
           />
           <Route element={<Navigate replace to="/login" />} path="/" />
           <Route element={<Navigate replace to="/login" />} path="*" />

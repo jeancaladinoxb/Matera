@@ -58,7 +58,10 @@ describe("RegistroHttpAdapter", () => {
     const post = vi
       .fn<ClienteHttpPort["post"]>()
       .mockResolvedValue(respuesta(201, { mensaje: "Registro exitoso" }));
-    const adapter = new RegistroHttpAdapter({ post });
+    const adapter = new RegistroHttpAdapter({
+      post,
+      get: vi.fn<ClienteHttpPort["get"]>(),
+    });
 
     const resultado = await adapter.registrar(usuarioDePrueba());
 
@@ -78,7 +81,10 @@ describe("RegistroHttpAdapter", () => {
       .mockResolvedValue(
         respuesta(400, { error: "No se pudo completar el registro" }),
       );
-    const adapter = new RegistroHttpAdapter({ post });
+    const adapter = new RegistroHttpAdapter({
+      post,
+      get: vi.fn<ClienteHttpPort["get"]>(),
+    });
 
     const resultado = await adapter.registrar(usuarioDePrueba());
 
@@ -95,7 +101,10 @@ describe("RegistroHttpAdapter", () => {
     const post = vi
       .fn<ClienteHttpPort["post"]>()
       .mockResolvedValue({ tipo: "fallo", motivo: "conexion" });
-    const adapter = new RegistroHttpAdapter({ post });
+    const adapter = new RegistroHttpAdapter({
+      post,
+      get: vi.fn<ClienteHttpPort["get"]>(),
+    });
 
     const resultado = await adapter.registrar(usuarioDePrueba());
 
@@ -112,7 +121,10 @@ describe("SessionHttpAdapter", () => {
     const post = vi
       .fn<ClienteHttpPort["post"]>()
       .mockResolvedValue(respuesta(200));
-    const adapter = new SessionHttpAdapter({ post });
+    const adapter = new SessionHttpAdapter({
+      post,
+      get: vi.fn<ClienteHttpPort["get"]>(),
+    });
 
     const resultado = await adapter.iniciarSesion(
       new CorreoElectronico("ana@example.com"),
@@ -137,7 +149,10 @@ describe("SessionHttpAdapter", () => {
       .mockResolvedValueOnce({ tipo: "fallo", motivo: "conexion" })
       .mockResolvedValueOnce({ tipo: "fallo", motivo: "conexion" })
       .mockResolvedValueOnce(respuesta(200));
-    const adapter = new SessionHttpAdapter({ post });
+    const adapter = new SessionHttpAdapter({
+      post,
+      get: vi.fn<ClienteHttpPort["get"]>(),
+    });
 
     await adapter.iniciarSesion(
       new CorreoElectronico("ana@example.com"),
@@ -158,7 +173,10 @@ describe("SessionHttpAdapter", () => {
       .fn<ClienteHttpPort["post"]>()
       .mockResolvedValueOnce(respuesta(200))
       .mockResolvedValueOnce(respuesta(401));
-    const adapter = new SessionHttpAdapter({ post });
+    const adapter = new SessionHttpAdapter({
+      post,
+      get: vi.fn<ClienteHttpPort["get"]>(),
+    });
     const observar = vi.fn();
     adapter.observarEventos(observar);
 
@@ -180,7 +198,10 @@ describe("SessionHttpAdapter", () => {
       .fn<ClienteHttpPort["post"]>()
       .mockResolvedValueOnce(respuesta(200))
       .mockResolvedValueOnce(respuesta(204));
-    const adapter = new SessionHttpAdapter({ post });
+    const adapter = new SessionHttpAdapter({
+      post,
+      get: vi.fn<ClienteHttpPort["get"]>(),
+    });
     await adapter.iniciarSesion(
       new CorreoElectronico("ana@example.com"),
       new ContraseñaDeInicioSesion("secreto"),
@@ -199,7 +220,10 @@ describe("SessionHttpAdapter", () => {
     const post = vi
       .fn<ClienteHttpPort["post"]>()
       .mockResolvedValue(respuesta(200));
-    const adapter = new SessionHttpAdapter({ post });
+    const adapter = new SessionHttpAdapter({
+      post,
+      get: vi.fn<ClienteHttpPort["get"]>(),
+    });
     await adapter.iniciarSesion(
       new CorreoElectronico("ana@example.com"),
       new ContraseñaDeInicioSesion("secreto"),
@@ -222,7 +246,10 @@ describe("SessionHttpAdapter", () => {
       .mockResolvedValueOnce(respuesta(200))
       .mockReturnValueOnce(respuestaRefresco)
       .mockResolvedValueOnce(respuesta(204));
-    const adapter = new SessionHttpAdapter({ post });
+    const adapter = new SessionHttpAdapter({
+      post,
+      get: vi.fn<ClienteHttpPort["get"]>(),
+    });
 
     await adapter.iniciarSesion(
       new CorreoElectronico("ana@example.com"),

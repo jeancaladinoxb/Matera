@@ -35,6 +35,12 @@ class InMemoryMateraRepository(MateraRepositoryPort):
         self.lookups += 1
         return self.materas.get(mac.value)
 
+    def buscar_por_usuario(self, usuario_id: int) -> Optional[Matera]:
+        for matera in self.materas.values():
+            if matera.usuario_id == usuario_id:
+                return matera
+        return None
+
     def registrar(self, matera: Matera) -> bool:
         if matera.mac.value in self.materas:
             return False
