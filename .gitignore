@@ -5,3 +5,6 @@ __pycache__/
 .DS_Store
 .pytest_cache/
 graphify-out/
+.aider*
+node_modules/
+dist/

@@ -17,6 +17,7 @@ _ENVIRONMENT = {
     "DB_PASSWORD": "fake-password",
     "JWT_SECRET": "fake-secret-that-is-long-enough-for-hs256",
     "JWT_EXPIRATION_HOURS": "5",
+    "CORS_ALLOWED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173",
     "CLAIM_MASTER_KEY": "fake-claim-master-key-that-is-long-enough",
     "DEVICE_JWT_SECRET": "fake-device-secret-that-is-long-enough-1",
 }
@@ -39,8 +40,59 @@ def test_create_app_loads_backend_env_and_registers_endpoints(monkeypatch) -> No
     load_dotenv.assert_called_once_with(Path(app_module.__file__).resolve().parent / ".env")
     assert app.test_client().post("/registro").status_code == 400
     assert app.test_client().post("/login").status_code == 400
+    assert app.test_client().post("/session/refresh").status_code == 401
+    assert app.test_client().post("/logout").status_code == 204
     assert app.test_client().post("/materas/vincular").status_code == 401
     assert app.test_client().post("/dispositivos/activar").status_code == 400
+
+
+def test_preflight_allows_credentials_only_for_configured_origins(monkeypatch) -> None:
+    _set_fake_environment(monkeypatch)
+    monkeypatch.setattr(app_module, "load_dotenv", Mock())
+    client = app_module.create_app().test_client()
+
+    allowed = client.options(
+        "/login",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    rejected = client.options(
+        "/login",
+        headers={
+            "Origin": "https://untrusted.example",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert allowed.status_code == 204
+    assert allowed.headers["Access-Control-Allow-Origin"] == "http://localhost:5173"
+    assert allowed.headers["Access-Control-Allow-Credentials"] == "true"
+    assert allowed.headers["Vary"] == "Origin"
+    assert "Access-Control-Allow-Origin" not in rejected.headers
+
+
+def test_cookie_defaults_are_secure_in_production(monkeypatch) -> None:
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.delenv("SESSION_COOKIE_SECURE", raising=False)
+    monkeypatch.delenv("SESSION_COOKIE_SAMESITE", raising=False)
+
+    settings = app_module._session_cookie_settings(Mock(expiration_seconds=18_000))
+
+    assert settings.name == "cuida_mate_session"
+    assert settings.max_age_seconds == 18_000
+    assert settings.secure is True
+    assert settings.same_site == "Lax"
+
+
+def test_none_same_site_requires_secure_cookie(monkeypatch) -> None:
+    monkeypatch.setenv("SESSION_COOKIE_SECURE", "false")
+    monkeypatch.setenv("SESSION_COOKIE_SAMESITE", "None")
+
+    with pytest.raises(ValueError, match="SESSION_COOKIE_SECURE"):
+        app_module._session_cookie_settings(Mock(expiration_seconds=18_000))
 
 
 def test_create_app_fails_with_names_of_missing_database_variables(monkeypatch) -> None:
