@@ -29,6 +29,10 @@ class JwtTokenAdapter(TokenProviderPort):
         self._secret = secret
         self._expiration = timedelta(hours=expiration_hours)
 
+    @property
+    def expiration_seconds(self) -> int:
+        return int(self._expiration.total_seconds())
+
     def generar_token(self, usuario_id: int) -> str:
         issued_at = datetime.now(timezone.utc)
         payload = {

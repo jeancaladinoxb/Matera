@@ -11,8 +11,26 @@ from backend.usuarios.domain import (
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
     InvalidEmailError,
+    InvalidTokenError,
 )
-from backend.usuarios.infrastructure.controllers import WebAppController
+from backend.usuarios.infrastructure.controllers import (
+    SessionCookieSettings,
+    WebAppController,
+)
+
+
+class FakeTokenProvider:
+    def __init__(self) -> None:
+        self.verified_tokens = []
+
+    def generar_token(self, usuario_id: int) -> str:
+        return "refreshed-token-for-{}".format(usuario_id)
+
+    def verificar_token(self, token: str) -> int:
+        self.verified_tokens.append(token)
+        if token not in {"login-token", "refreshed-token-for-42"}:
+            raise InvalidTokenError()
+        return 42
 
 
 class FakeRegistrarUsuario(RegistrarUsuarioPort):
@@ -59,12 +77,23 @@ class WebAppControllerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.registrar = FakeRegistrarUsuario()
         self.iniciar_sesion = FakeIniciarSesion()
+        self.token_provider = FakeTokenProvider()
         self.app = Flask(__name__)
-        self.controller = WebAppController(self.registrar, self.iniciar_sesion)
+        self.controller = WebAppController(
+            self.registrar,
+            self.iniciar_sesion,
+            self.token_provider,
+            SessionCookieSettings(
+                name="cuida_mate_session",
+                max_age_seconds=18_000,
+                secure=False,
+                same_site="Lax",
+            ),
+        )
         self.controller.register_routes(self.app)
         self.client = self.app.test_client()
 
-    def test_registration_returns_token_and_calls_input_port(self) -> None:
+    def test_registration_returns_success_without_starting_a_session(self) -> None:
         response = self.client.post(
             "/registro",
             json={
@@ -77,21 +106,65 @@ class WebAppControllerTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.get_json(), {"token": "registration-token"})
+        self.assertEqual(response.get_json(), {"mensaje": "Registro exitoso"})
+        self.assertIsNone(response.headers.get("Set-Cookie"))
         self.assertEqual(len(self.registrar.calls), 1)
 
-    def test_login_returns_token_and_calls_input_port(self) -> None:
+    def test_login_sets_http_only_cookie_without_returning_the_token(self) -> None:
         response = self.client.post(
             "/login",
             json={"correo": "ana@example.com", "contrasena": "wrong-is-port-input"},
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json(), {"token": "login-token"})
+        self.assertEqual(response.get_json(), {"mensaje": "Inicio de sesión exitoso"})
+        cookie = response.headers["Set-Cookie"]
+        self.assertIn("cuida_mate_session=login-token", cookie)
+        self.assertIn("HttpOnly", cookie)
+        self.assertIn("SameSite=Lax", cookie)
+        self.assertIn("Max-Age=18000", cookie)
+        self.assertNotIn("Secure", cookie)
         self.assertEqual(
             self.iniciar_sesion.calls,
             [("ana@example.com", "wrong-is-port-input")],
         )
+
+    def test_refresh_rotates_the_http_only_cookie(self) -> None:
+        self.client.post(
+            "/login",
+            json={"correo": "ana@example.com", "contrasena": "Clave123"},
+        )
+
+        response = self.client.post("/session/refresh")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"mensaje": "Sesión renovada"})
+        self.assertIn(
+            "cuida_mate_session=refreshed-token-for-42",
+            response.headers["Set-Cookie"],
+        )
+        self.assertEqual(self.token_provider.verified_tokens, ["login-token"])
+
+    def test_refresh_without_a_valid_cookie_is_rejected_generically(self) -> None:
+        response = self.client.post("/session/refresh")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.get_json(),
+            {
+                "error": "La sesión no se puede renovar",
+                "codigo": "SESION_RECHAZADA",
+            },
+        )
+
+    def test_logout_clears_the_http_only_cookie(self) -> None:
+        response = self.client.post("/logout")
+
+        self.assertEqual(response.status_code, 204)
+        cookie = response.headers["Set-Cookie"]
+        self.assertIn("cuida_mate_session=", cookie)
+        self.assertIn("Max-Age=0", cookie)
+        self.assertIn("HttpOnly", cookie)
 
     def test_invalid_or_missing_json_body_returns_400(self) -> None:
         invalid_responses = (
