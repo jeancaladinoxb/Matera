@@ -4,17 +4,27 @@ import { CerrarSesionUseCase } from "../../aplicacion/casos-de-uso/cerrar-sesion
 import { RegistroHttpAdapter } from "../salida/registro-http-adapter";
 import { SessionHttpAdapter } from "../salida/session-http-adapter";
 import { ClienteHttp } from "../salida/cliente-http";
+import { VincularMateraUseCase } from "../../../materas/aplicacion/casos-de-uso/vincular-matera-use-case";
+import { VincularMateraDesdeQrUseCase } from "../../../materas/aplicacion/casos-de-uso/vincular-matera-desde-qr-use-case";
+import { ConsultarMateraDelUsuarioUseCase } from "../../../materas/aplicacion/casos-de-uso/consultar-matera-del-usuario-use-case";
+import { MateraHttpAdapter } from "../../../materas/infraestructura/salida/matera-http-adapter";
 
 export function crearComposicionUsuarios() {
   const clienteHttp = new ClienteHttp();
   const registroHttp = new RegistroHttpAdapter(clienteHttp);
   const sessionHttp = new SessionHttpAdapter(clienteHttp);
+  const materaHttp = new MateraHttpAdapter(clienteHttp);
+  const vincularMatera = new VincularMateraUseCase(materaHttp);
 
   return {
     registrarUsuario: new RegistrarUsuarioUseCase(registroHttp),
     iniciarSesion: new IniciarSesionUseCase(sessionHttp),
     cerrarSesion: new CerrarSesionUseCase(sessionHttp),
     sessionHttp,
+    vincularMatera,
+    vincularMateraDesdeQr: new VincularMateraDesdeQrUseCase(vincularMatera),
+    consultarMateraDelUsuario:
+      new ConsultarMateraDelUsuarioUseCase(materaHttp),
   };
 }
 

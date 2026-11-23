@@ -14,10 +14,29 @@ export type ResultadoHttp =
 
 export interface ClienteHttpPort {
   post(ruta: string, cuerpo?: unknown): Promise<ResultadoHttp>;
+  get(ruta: string): Promise<ResultadoHttp>;
 }
 
 export class ClienteHttp implements ClienteHttpPort {
+  async get(ruta: string): Promise<ResultadoHttp> {
+    return this.request(ruta, { method: "GET" });
+  }
+
   async post(ruta: string, cuerpo?: unknown): Promise<ResultadoHttp> {
+    return this.request(ruta, {
+      method: "POST",
+      headers:
+        cuerpo === undefined
+          ? undefined
+          : { "Content-Type": "application/json" },
+      body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+    });
+  }
+
+  private async request(
+    ruta: string,
+    opciones: RequestInit,
+  ): Promise<ResultadoHttp> {
     const controlador = new AbortController();
     const temporizador = setTimeout(
       () => controlador.abort(),
@@ -27,11 +46,9 @@ export class ClienteHttp implements ClienteHttpPort {
     try {
       const url = `${URL_BASE_API.replace(/\/+$/, "")}/${ruta.replace(/^\/+/, "")}`;
       const respuesta = await fetch(url, {
-        method: "POST",
+        ...opciones,
         credentials: "include",
         signal: controlador.signal,
-        headers: cuerpo === undefined ? undefined : { "Content-Type": "application/json" },
-        body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
       });
 
       const texto = await respuesta.text();

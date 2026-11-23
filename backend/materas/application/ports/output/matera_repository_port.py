@@ -6,6 +6,10 @@ from backend.materas.domain import Mac, Matera
 
 class MateraRepositoryPort(ABC):
     @abstractmethod
+    def buscar_por_usuario(self, usuario_id: int) -> Optional[Matera]:
+        """Return the matera linked to this user, or None."""
+
+    @abstractmethod
     def buscar_por_mac(self, mac: Mac) -> Optional[Matera]:
         """Return the matera with this MAC, or None.
 

@@ -5,6 +5,7 @@ from flask import Flask, jsonify, request
 
 from backend.materas.application.ports.input import (
     ActivarDispositivoPort,
+    ConsultarMateraDelUsuarioPort,
     VincularMateraPort,
 )
 from backend.materas.domain import (
@@ -26,9 +27,15 @@ class MateraController:
         self,
         vincular_matera: VincularMateraPort,
         activar_dispositivo: ActivarDispositivoPort,
+        consultar_matera_del_usuario: Optional[
+            ConsultarMateraDelUsuarioPort
+        ] = None,
+        session_cookie_name: str = "cuida_mate_session",
     ) -> None:
         self._vincular_matera = vincular_matera
         self._activar_dispositivo = activar_dispositivo
+        self._consultar_matera_del_usuario = consultar_matera_del_usuario
+        self._session_cookie_name = session_cookie_name
 
     def register_routes(self, app: Flask) -> None:
         app.add_url_rule(
@@ -43,9 +50,15 @@ class MateraController:
             view_func=self.activar,
             methods=["POST"],
         )
+        app.add_url_rule(
+            "/materas/mias",
+            endpoint="consultar_matera_del_usuario",
+            view_func=self.consultar_mias,
+            methods=["GET"],
+        )
 
     def vincular(self):
-        token = self._bearer_token()
+        token = request.cookies.get(self._session_cookie_name)
         if token is None:
             return self._unauthorized()
 
@@ -66,6 +79,33 @@ class MateraController:
             return jsonify({"error": _INVALID_MATERA_MESSAGE}), 404
         except MateraYaVinculadaError:
             return jsonify({"error": "La matera ya está vinculada"}), 409
+        except Exception as error:
+            return self._internal_error(error)
+
+    def consultar_mias(self):
+        token = request.cookies.get(self._session_cookie_name)
+        if token is None:
+            return self._unauthorized()
+        if self._consultar_matera_del_usuario is None:
+            return self._internal_error(
+                RuntimeError("Consulta de matera no configurada")
+            )
+
+        try:
+            matera = self._consultar_matera_del_usuario.consultar(token)
+            if matera is None:
+                return jsonify({"vinculada": False, "mac": None}), 200
+            return (
+                jsonify(
+                    {
+                        "vinculada": True,
+                        "mac": matera.mac.value,
+                    }
+                ),
+                200,
+            )
+        except InvalidTokenError:
+            return self._unauthorized()
         except Exception as error:
             return self._internal_error(error)
 
@@ -90,14 +130,6 @@ class MateraController:
             return jsonify({"error": "La matera aún no está vinculada"}), 409
         except Exception as error:
             return self._internal_error(error)
-
-    @staticmethod
-    def _bearer_token() -> Optional[str]:
-        scheme, _, token = request.headers.get("Authorization", "").partition(" ")
-        token = token.strip()
-        if scheme.lower() != "bearer" or not token:
-            return None
-        return token
 
     @staticmethod
     def _unauthorized():

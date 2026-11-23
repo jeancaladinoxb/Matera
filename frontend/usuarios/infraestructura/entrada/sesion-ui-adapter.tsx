@@ -4,13 +4,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { IniciarSesionPort } from "../../aplicacion/puertos/entrada/iniciar-sesion-port";
 import { CorreoElectronico } from "../../dominio/correo-electronico";
 import { ErrorValidacionDominio } from "../../dominio/errores-dominio";
+import { ConsultarMateraDelUsuarioPort } from "../../../materas/aplicacion/puertos/entrada/consultar-matera-del-usuario-port";
 import { mensajeDeError } from "./mensajes-ui";
 
 interface PropsSesionUIAdapter {
   readonly iniciarSesion: IniciarSesionPort;
+  readonly consultarMateraDelUsuario?: ConsultarMateraDelUsuarioPort;
 }
 
-export function SesionUIAdapter({ iniciarSesion }: PropsSesionUIAdapter) {
+export function SesionUIAdapter({
+  iniciarSesion,
+  consultarMateraDelUsuario,
+}: PropsSesionUIAdapter) {
   const navegar = useNavigate();
   const envioEnCurso = useRef(false);
   const [correo, setCorreo] = useState("");
@@ -51,6 +56,23 @@ export function SesionUIAdapter({ iniciarSesion }: PropsSesionUIAdapter) {
       if (resultado.estado === "error") {
         setError(mensajeDeError(resultado.error));
         return;
+      }
+      if (consultarMateraDelUsuario) {
+        const consulta = await consultarMateraDelUsuario.consultarMateraDelUsuario();
+        if (consulta.estado === "exito") {
+          navegar(
+            consulta.valor.vinculada ? "/inicio" : "/materas/vincular",
+            { replace: true },
+          );
+          return;
+        }
+        if (
+          consulta.estado === "error" &&
+          consulta.error.tipo === "sesion_vencida"
+        ) {
+          setError("Tu sesión venció. Inicia sesión nuevamente.");
+          return;
+        }
       }
       navegar("/inicio", { replace: true });
     } finally {
