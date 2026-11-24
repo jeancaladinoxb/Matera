@@ -3,13 +3,17 @@ import { useNavigate } from "react-router-dom";
 
 import { CerrarSesionPort } from "../../aplicacion/puertos/entrada/cerrar-sesion-port";
 import { mensajeDeError } from "./mensajes-ui";
+import { ConsultarPanelPrincipalPort } from "../../../panelPrincipal/aplicacion/puertos/entrada/consultar-panel-principal-port";
+import { PanelPrincipalUIAdapter } from "../../../panelPrincipal/infraestructura/entrada/panel-principal-ui-adapter";
 
 interface PropsPantallaPrincipal {
   readonly cerrarSesion: CerrarSesionPort;
+  readonly consultarPanel: ConsultarPanelPrincipalPort;
 }
 
 export function PantallaPrincipal({
   cerrarSesion,
+  consultarPanel,
 }: PropsPantallaPrincipal) {
   const navegar = useNavigate();
   const envioEnCurso = useRef(false);
@@ -39,23 +43,27 @@ export function PantallaPrincipal({
   }
 
   return (
-    <section className="auth-card home-card" aria-labelledby="inicio-titulo">
-      <p className="eyebrow">Cuida tu mate</p>
-      <h1 id="inicio-titulo">Tu espacio para crecer</h1>
-      <p className="intro-copy">
-        Tu sesión está activa. Muy pronto encontrarás aquí el cuidado de tus
-        plantas.
-      </p>
-      {error && (
-        <p className="form-error" role="alert" aria-live="assertive">
-          {error}
-        </p>
-      )}
-      <form onSubmit={salir}>
-        <button className="secondary-button" disabled={cargando} type="submit">
-          {cargando ? "Cerrando sesión…" : "Cerrar sesión"}
-        </button>
-      </form>
+    <section
+      aria-label="Panel principal"
+      className="auth-card home-card panel-home-card"
+    >
+      <PanelPrincipalUIAdapter consultarPanel={consultarPanel} />
+      <section
+        aria-labelledby="panel-sesion-titulo"
+        className="panel-session-actions"
+      >
+        <h2 id="panel-sesion-titulo">Tu sesión</h2>
+        {error && (
+          <p className="form-error" role="alert" aria-live="assertive">
+            {error}
+          </p>
+        )}
+        <form onSubmit={salir}>
+          <button className="secondary-button" disabled={cargando} type="submit">
+            {cargando ? "Cerrando sesión…" : "Cerrar sesión"}
+          </button>
+        </form>
+      </section>
     </section>
   );
 }

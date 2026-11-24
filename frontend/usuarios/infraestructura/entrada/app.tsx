@@ -147,7 +147,10 @@ export function App({ composicion }: PropsApp) {
                 }
                 vincularSiFalta={false}
               >
-                <PantallaPrincipal cerrarSesion={composicion.cerrarSesion} />
+                <PantallaPrincipal
+                  cerrarSesion={composicion.cerrarSesion}
+                  consultarPanel={composicion.consultarPanelPrincipal}
+                />
               </ProteccionSesion>
             }
             path="/inicio"

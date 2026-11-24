@@ -1,0 +1,215 @@
+.panel-home-card {
+  width: min(100%, 980px);
+  padding: clamp(24px, 5vw, 52px);
+}
+
+.panel-content {
+  display: grid;
+  gap: clamp(20px, 3vw, 30px);
+}
+
+.panel-heading {
+  padding: 4px 2px clamp(20px, 3vw, 30px);
+  border-bottom: 1px solid var(--color-line);
+  animation: panel-rise 560ms 70ms both;
+}
+
+.panel-heading h1 {
+  max-width: 22ch;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  overflow-wrap: anywhere;
+}
+
+.panel-heading .intro-copy {
+  margin: 12px 0 0;
+}
+
+.panel-section {
+  min-width: 0;
+  border: 1px solid var(--color-line);
+  border-radius: 24px;
+  padding: clamp(20px, 3.5vw, 30px);
+  background: var(--color-surface-raised);
+  box-shadow: inset 0 1px 0 var(--color-line-bright);
+  animation: panel-rise 560ms 140ms both;
+}
+
+.panel-section:nth-of-type(2) {
+  animation-delay: 210ms;
+}
+
+.panel-section h2,
+.panel-session-actions h2 {
+  margin: 0 0 18px;
+  color: var(--color-ink);
+  font-family: Manrope, "DM Sans", sans-serif;
+  font-size: clamp(1.25rem, 3vw, 1.65rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.panel-matera-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-matera-card {
+  min-width: 0;
+  border: 1px solid var(--color-line);
+  border-radius: 19px;
+  padding: 20px;
+  background: var(--color-surface);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.panel-matera-card h3 {
+  margin: 0 0 13px;
+  color: var(--color-leaf);
+  font-family: Manrope, "DM Sans", sans-serif;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.panel-matera-card p,
+.panel-section [role="status"] {
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.panel-matera-card p {
+  margin: 8px 0;
+}
+
+.panel-section .secondary-button {
+  width: auto;
+  min-height: 48px;
+}
+
+.panel-section [role="status"] {
+  margin: 12px 0 0;
+}
+
+.panel-section .secondary-button + p[role="status"] {
+  border-left: 3px solid var(--color-moss);
+  padding: 2px 0 2px 12px;
+}
+
+.panel-loading-state,
+.panel-error-state {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  min-height: 245px;
+  align-content: center;
+  padding: clamp(4px, 2vw, 16px);
+}
+
+.panel-loading-state h1,
+.panel-error-state h1 {
+  font-size: clamp(1.8rem, 5vw, 2.7rem);
+}
+
+.panel-loading-state > p:last-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.panel-loading-state .loading-orbit {
+  border-color: color-mix(in srgb, var(--color-leaf) 24%, transparent);
+  border-top-color: var(--color-leaf);
+}
+
+.panel-error-state .form-error {
+  max-width: 60ch;
+}
+
+.panel-error-state .primary-button {
+  width: auto;
+  min-width: 150px;
+}
+
+.panel-session-actions {
+  border-top: 1px solid var(--color-line);
+  padding-top: 24px;
+}
+
+.panel-session-actions h2 {
+  margin-bottom: 14px;
+  color: var(--color-ink-muted);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+
+.panel-session-actions form {
+  max-width: 280px;
+}
+
+.panel-session-actions .form-error {
+  margin-bottom: 14px;
+}
+
+@media (hover: hover) {
+  .panel-matera-card:hover {
+    border-color: color-mix(in srgb, var(--color-leaf) 35%, var(--color-line));
+    box-shadow: 0 12px 28px rgba(36, 74, 51, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 560px) {
+  .panel-home-card {
+    padding: 22px 18px;
+    border-radius: 26px;
+  }
+
+  .panel-content {
+    gap: 18px;
+  }
+
+  .panel-section {
+    border-radius: 20px;
+    padding: 20px 16px;
+  }
+
+  .panel-section .secondary-button,
+  .panel-error-state .primary-button {
+    width: 100%;
+  }
+
+  .panel-session-actions form {
+    max-width: none;
+  }
+}
+
+@keyframes panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-heading,
+  .panel-section,
+  .panel-matera-card {
+    animation: none;
+    transition: none;
+  }
+}

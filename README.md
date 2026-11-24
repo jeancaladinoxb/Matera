@@ -296,6 +296,21 @@ Respuestas principales:
 - `404`: usuario de la sesión no encontrado.
 - `500`: error interno genérico.
 
+### Interfaz del panel
+
+La ruta `/inicio`, protegida por la sesión existente, consulta `GET /panel`
+para mostrar el nickname y el identificador del usuario, además de las materas
+vinculadas con su MAC y el estado de asignación de planta. La petición usa el
+cliente HTTP compartido y la cookie `HttpOnly`; el frontend no lee la cookie ni
+envía un identificador de usuario.
+
+- Si la respuesta no contiene materas, la interfaz redirige a
+  `/materas/vincular`.
+- Si la sesión venció, redirige a `/login`; ante otros errores permite reintentar.
+- La vinculación de plantas y la gamificación se muestran como funciones aún no
+  disponibles; no realizan llamadas a servicios inexistentes.
+- El cierre de sesión conserva el flujo existente.
+
 ## Reglas de validación
 
 - El correo se recorta y convierte a minúsculas.
@@ -369,7 +384,8 @@ correctamente.
 
 - `/registro`: formulario de creación de cuenta.
 - `/login`: formulario de inicio de sesión.
-- `/inicio`: pantalla principal mínima y cierre de sesión.
+- `/inicio`: panel principal con datos del usuario, materas vinculadas y cierre
+  de sesión.
 - `/materas/vincular`: vinculación mediante cámara QR o datos manuales.
 
 El proyecto usa React Router y admite navegación directa a esas rutas.
