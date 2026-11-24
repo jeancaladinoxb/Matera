@@ -22,6 +22,8 @@ frontend React construido con arquitectura hexagonal.
 - Permite cerrar sesión y expirar la cookie desde el frontend.
 - Vincula materas físicas mediante MAC y código de reclamo.
 - Activa dispositivos asociados con tokens JWT específicos para dispositivos.
+- Expone el panel principal del usuario con sus datos y todas sus materas
+  vinculadas.
 - Incluye pantallas móviles y de escritorio con modo claro y modo oscuro,
   validación en vivo, estados de carga y mensajes accesibles.
 
@@ -255,6 +257,45 @@ Cuando no existe una vinculación responde:
 Permite activar una matera ya vinculada. Recibe MAC y código y devuelve un JWT
 exclusivo para el dispositivo ESP32.
 
+## Panel principal
+
+### `GET /panel`
+
+Consulta el perfil y las materas vinculadas del usuario autenticado. La
+identidad se obtiene de la cookie de sesión `HttpOnly`; el endpoint no acepta
+un `usuario_id` enviado por el cliente.
+
+Respuesta `200`:
+
+```json
+{
+  "usuario": {
+    "usuario_id": 7,
+    "nombre": "Ana",
+    "nickname": "anap"
+  },
+  "materas": [
+    {
+      "matera_id": 12,
+      "dispositivo_id": 12,
+      "mac": "246F28AB1234",
+      "planta_id": null
+    }
+  ]
+}
+```
+
+La respuesta incluye todas las materas vinculadas al usuario. `dispositivo_id`
+usa actualmente el mismo identificador que `matera_id`. Una lista `materas`
+vacía es válida. `planta_id` es `null` mientras no haya una asignación de planta.
+El panel todavía no devuelve lecturas de sensores.
+
+Respuestas principales:
+
+- `401`: cookie ausente o sesión inválida.
+- `404`: usuario de la sesión no encontrado.
+- `500`: error interno genérico.
+
 ## Reglas de validación
 
 - El correo se recorta y convierte a minúsculas.
@@ -298,6 +339,10 @@ también usa capas `dominio`, `aplicacion` e `infraestructura` dentro de
 - El código se deriva con HMAC-SHA256 usando la clave maestra.
 - `POST /materas/vincular` vincula una matera a un usuario autenticado.
 - `POST /dispositivos/activar` entrega un token JWT exclusivo para el dispositivo.
+
+El módulo `backend/panelPrincipal/` implementa el endpoint del panel con capas
+de dominio, aplicación e infraestructura. Sus consultas PostgreSQL son de solo
+lectura y filtran las materas por el `usuario_id` autenticado.
 
 ## Pruebas
 

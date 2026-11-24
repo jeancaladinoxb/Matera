@@ -1,9 +1,18 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 from flask import Flask, make_response, request, send_file
 
+from backend.panelPrincipal.application.use_cases import (
+    ConsultarPanelPrincipalCasoDeUso,
+)
+from backend.panelPrincipal.infrastructure.adapters import (
+    PostgresMateraRepositoryAdapter as PostgresPanelMateraRepositoryAdapter,
+    PostgresUsuarioRepositoryAdapter as PostgresPanelUsuarioRepositoryAdapter,
+)
+from backend.panelPrincipal.infrastructure.controllers import PanelPrincipalAdapter
 from backend.materas.application.use_cases import (
     ActivarDispositivoUseCase,
     ConsultarMateraDelUsuarioUseCase,
@@ -21,6 +30,7 @@ from backend.usuarios.application.use_cases import (
     IniciarSesionUseCase,
     RegistrarUsuarioUseCase,
 )
+from backend.usuarios.domain import InvalidTokenError
 from backend.usuarios.infrastructure.adapters import (
     Argon2Hasher,
     JwtTokenAdapter,
@@ -41,8 +51,9 @@ from backend.usuarios.infrastructure.adapters.postgresql_repository_adapter impo
 def create_app() -> Flask:
     load_dotenv(Path(__file__).resolve().parent / ".env")
 
+    connection_factory = connection_factory_from_environment()
     usuario_repository = PostgresqlRepositoryAdapter(
-        connection_factory_from_environment()
+        connection_factory
     )
     password_hasher = Argon2Hasher()
     token_provider: JwtTokenAdapter = jwt_token_adapter_from_environment()
@@ -58,7 +69,6 @@ def create_app() -> Flask:
         token_provider,
     )
 
-    connection_factory = connection_factory_from_environment()
     matera_repository = PostgresMateraRepositoryAdapter(connection_factory)
     claim_code_verifier = hmac_claim_verifier_from_environment()
     device_token_provider = jwt_device_token_adapter_from_environment()
@@ -69,23 +79,33 @@ def create_app() -> Flask:
     consultar_matera_del_usuario = ConsultarMateraDelUsuarioUseCase(
         matera_repository, token_provider
     )
+    consultar_panel_principal = ConsultarPanelPrincipalCasoDeUso(
+        PostgresPanelUsuarioRepositoryAdapter(connection_factory),
+        PostgresPanelMateraRepositoryAdapter(connection_factory),
+    )
     activar_dispositivo = ActivarDispositivoUseCase(
         matera_repository, claim_code_verifier, device_token_provider
     )
 
     app = Flask(__name__)
     _configure_cors(app)
+    session_cookie_settings = _session_cookie_settings(token_provider)
     WebAppController(
         registrar_usuario,
         iniciar_sesion,
         token_provider,
-        _session_cookie_settings(token_provider),
+        session_cookie_settings,
     ).register_routes(app)
     MateraController(
         vincular_matera,
         activar_dispositivo,
         consultar_matera_del_usuario,
         os.environ.get("SESSION_COOKIE_NAME", "cuida_mate_session"),
+    ).register_routes(app)
+    PanelPrincipalAdapter(
+        consultar_panel_principal,
+        lambda token: _session_usuario_id(token_provider, token),
+        session_cookie_settings.name,
     ).register_routes(app)
     if _development_tools_enabled():
         test_page = Path(__file__).resolve().parent / "dev_tools" / "test_page.html"
@@ -96,6 +116,15 @@ def create_app() -> Flask:
             methods=["GET"],
         )
     return app
+
+
+def _session_usuario_id(
+    token_provider: JwtTokenAdapter, token: str
+) -> Optional[int]:
+    try:
+        return token_provider.verificar_token(token)
+    except InvalidTokenError:
+        return None
 
 
 def _development_tools_enabled() -> bool:
