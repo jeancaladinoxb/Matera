@@ -6,6 +6,8 @@ import { ErrorAplicacion } from "../../../usuarios/aplicacion/errores-aplicacion
 import { ResultadoAplicacion } from "../../../usuarios/aplicacion/resultado-aplicacion";
 import { mensajeDeError } from "../../../usuarios/infraestructura/entrada/mensajes-ui";
 import { PanelPrincipal } from "../../dominio/panel-principal";
+import { ConsultarLogrosPort } from "../../../gamificacion/aplicacion/puertos/entrada/consultar-logros-port";
+import { LogrosUIAdapter } from "../../../gamificacion/infraestructura/entrada/logros-ui-adapter";
 
 import "./panel-principal.css";
 
@@ -21,17 +23,18 @@ interface SolicitudPanel {
 
 interface PropsPanelPrincipalUIAdapter {
   readonly consultarPanel: ConsultarPanelPrincipalPort;
+  readonly consultarLogros: ConsultarLogrosPort;
 }
 
 export function PanelPrincipalUIAdapter({
   consultarPanel,
+  consultarLogros,
 }: PropsPanelPrincipalUIAdapter) {
   const navegar = useNavigate();
   const solicitud = useRef<SolicitudPanel | null>(null);
   const [intento, setIntento] = useState(0);
   const [estado, setEstado] = useState<EstadoPantalla>({ tipo: "cargando" });
   const [avisoPlantaId, setAvisoPlantaId] = useState<number | null>(null);
-  const [avisoGamificacion, setAvisoGamificacion] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -163,18 +166,11 @@ export function PanelPrincipalUIAdapter({
 
       {estado.valor.tieneOpcionGamificacion && (
         <section aria-labelledby="gamificacion-titulo" className="panel-section">
-          <h2 id="gamificacion-titulo">Gamificación</h2>
-          <button
-            className="secondary-button"
-            onClick={() => setAvisoGamificacion(true)}
-            type="button"
-          >
-            Explorar gamificación
-          </button>
-          {avisoGamificacion && (
-            <p aria-live="polite" role="status">
-              La gamificación no está disponible por ahora.
-            </p>
+          <h2 id="gamificacion-titulo">Tus logros</h2>
+          {estado.valor.gamificacionDisponible ? (
+            <LogrosUIAdapter consultarLogros={consultarLogros} />
+          ) : (
+            <p role="status">La gamificación no está disponible por ahora.</p>
           )}
         </section>
       )}

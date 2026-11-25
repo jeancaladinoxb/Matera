@@ -1,0 +1,148 @@
+.logros-contenido {
+  display: grid;
+  gap: 16px;
+}
+
+.logros-estado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.logros-nivel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 10px 16px;
+  border-radius: 19px;
+  padding: 18px 20px;
+  background: var(--color-leaf-light);
+}
+
+.logros-nivel .eyebrow {
+  margin: 0;
+}
+
+.logros-nivel-nombre {
+  margin: 2px 0 0;
+  color: var(--color-ink);
+  font-family: Manrope, "DM Sans", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.logros-puntos {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.logros-puntos strong {
+  color: var(--color-leaf);
+  font-size: 1.6rem;
+}
+
+.logros-barra {
+  grid-column: 1 / -1;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+
+.logros-barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-moss), var(--color-leaf));
+  transition: width 600ms ease;
+}
+
+.logros-siguiente,
+.logros-resumen {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+}
+
+.logros-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.logro-tarjeta {
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid var(--color-line);
+  border-radius: 17px;
+  padding: 16px;
+  background: var(--color-surface);
+}
+
+.logro-icono {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--color-leaf-light);
+  font-size: 1.5rem;
+}
+
+.logro-texto h3 {
+  margin: 0 0 4px;
+  color: var(--color-ink);
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.logro-texto p {
+  margin: 0;
+  color: var(--color-ink-soft);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.logro-texto .logro-meta {
+  margin-top: 6px;
+  color: var(--color-leaf);
+  font-weight: 700;
+}
+
+.logro-desbloqueado {
+  border-color: color-mix(in srgb, var(--color-leaf) 40%, var(--color-line));
+}
+
+.logro-bloqueado .logro-icono {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.logro-bloqueado .logro-meta {
+  color: var(--color-ink-muted);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logros-barra span {
+    transition: none;
+  }
+}

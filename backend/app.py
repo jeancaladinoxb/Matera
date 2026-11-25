@@ -5,6 +5,12 @@ from typing import Optional
 from dotenv import load_dotenv
 from flask import Flask, make_response, request, send_file
 
+from backend.gamificacion.application.use_cases import ConsultarLogrosCasoDeUso
+from backend.gamificacion.infrastructure.adapters import (
+    PostgresEstadisticasRepositoryAdapter,
+    RelojSistemaAdapter,
+)
+from backend.gamificacion.infrastructure.controllers import LogrosAdapter
 from backend.panelPrincipal.application.use_cases import (
     ConsultarPanelPrincipalCasoDeUso,
 )
@@ -83,6 +89,10 @@ def create_app() -> Flask:
         PostgresPanelUsuarioRepositoryAdapter(connection_factory),
         PostgresPanelMateraRepositoryAdapter(connection_factory),
     )
+    consultar_logros = ConsultarLogrosCasoDeUso(
+        PostgresEstadisticasRepositoryAdapter(connection_factory),
+        RelojSistemaAdapter(),
+    )
     activar_dispositivo = ActivarDispositivoUseCase(
         matera_repository, claim_code_verifier, device_token_provider
     )
@@ -104,6 +114,11 @@ def create_app() -> Flask:
     ).register_routes(app)
     PanelPrincipalAdapter(
         consultar_panel_principal,
+        lambda token: _session_usuario_id(token_provider, token),
+        session_cookie_settings.name,
+    ).register_routes(app)
+    LogrosAdapter(
+        consultar_logros,
         lambda token: _session_usuario_id(token_provider, token),
         session_cookie_settings.name,
     ).register_routes(app)

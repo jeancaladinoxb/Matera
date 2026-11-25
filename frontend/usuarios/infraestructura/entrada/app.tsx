@@ -149,6 +149,7 @@ export function App({ composicion }: PropsApp) {
               >
                 <PantallaPrincipal
                   cerrarSesion={composicion.cerrarSesion}
+                  consultarLogros={composicion.consultarLogros}
                   consultarPanel={composicion.consultarPanelPrincipal}
                 />
               </ProteccionSesion>
