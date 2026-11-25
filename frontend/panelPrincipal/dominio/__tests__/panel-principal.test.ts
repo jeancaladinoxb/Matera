@@ -35,6 +35,6 @@ describe("PanelPrincipal", () => {
 
     expect(panel.materas).toHaveLength(2);
     expect(panel.tieneOpcionGamificacion).toBe(true);
-    expect(panel.gamificacionDisponible).toBe(false);
+    expect(panel.gamificacionDisponible).toBe(true);
   });
 });

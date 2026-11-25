@@ -6,7 +6,7 @@ export class PanelPrincipal {
   readonly usuario: Usuario;
   readonly materas: readonly Matera[];
   readonly tieneOpcionGamificacion = true;
-  readonly gamificacionDisponible = false;
+  readonly gamificacionDisponible = true;
 
   constructor(usuario: Usuario, materas: readonly Matera[]) {
     if (

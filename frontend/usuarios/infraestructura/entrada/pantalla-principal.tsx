@@ -4,16 +4,19 @@ import { useNavigate } from "react-router-dom";
 import { CerrarSesionPort } from "../../aplicacion/puertos/entrada/cerrar-sesion-port";
 import { mensajeDeError } from "./mensajes-ui";
 import { ConsultarPanelPrincipalPort } from "../../../panelPrincipal/aplicacion/puertos/entrada/consultar-panel-principal-port";
+import { ConsultarLogrosPort } from "../../../gamificacion/aplicacion/puertos/entrada/consultar-logros-port";
 import { PanelPrincipalUIAdapter } from "../../../panelPrincipal/infraestructura/entrada/panel-principal-ui-adapter";
 
 interface PropsPantallaPrincipal {
   readonly cerrarSesion: CerrarSesionPort;
   readonly consultarPanel: ConsultarPanelPrincipalPort;
+  readonly consultarLogros: ConsultarLogrosPort;
 }
 
 export function PantallaPrincipal({
   cerrarSesion,
   consultarPanel,
+  consultarLogros,
 }: PropsPantallaPrincipal) {
   const navegar = useNavigate();
   const envioEnCurso = useRef(false);
@@ -47,7 +50,10 @@ export function PantallaPrincipal({
       aria-label="Panel principal"
       className="auth-card home-card panel-home-card"
     >
-      <PanelPrincipalUIAdapter consultarPanel={consultarPanel} />
+      <PanelPrincipalUIAdapter
+        consultarLogros={consultarLogros}
+        consultarPanel={consultarPanel}
+      />
       <section
         aria-labelledby="panel-sesion-titulo"
         className="panel-session-actions"

@@ -9,6 +9,8 @@ import { VincularMateraDesdeQrUseCase } from "../../../materas/aplicacion/casos-
 import { ConsultarMateraDelUsuarioUseCase } from "../../../materas/aplicacion/casos-de-uso/consultar-matera-del-usuario-use-case";
 import { MateraHttpAdapter } from "../../../materas/infraestructura/salida/matera-http-adapter";
 import { ConsultarPanelPrincipalUseCase } from "../../../panelPrincipal/aplicacion/casos-de-uso/consultar-panel-principal-use-case";
+import { ConsultarLogrosUseCase } from "../../../gamificacion/aplicacion/casos-de-uso/consultar-logros-use-case";
+import { LogrosHttpAdapter } from "../../../gamificacion/infraestructura/salida/logros-http-adapter";
 import { UsuarioMateraHttpAdapter } from "../../../panelPrincipal/infraestructura/salida/usuario-matera-http-adapter";
 
 export function crearComposicionUsuarios() {
@@ -17,6 +19,7 @@ export function crearComposicionUsuarios() {
   const sessionHttp = new SessionHttpAdapter(clienteHttp);
   const materaHttp = new MateraHttpAdapter(clienteHttp);
   const panelHttp = new UsuarioMateraHttpAdapter(clienteHttp);
+  const logrosHttp = new LogrosHttpAdapter(clienteHttp);
   const vincularMatera = new VincularMateraUseCase(materaHttp);
 
   return {
@@ -29,6 +32,7 @@ export function crearComposicionUsuarios() {
     consultarMateraDelUsuario:
       new ConsultarMateraDelUsuarioUseCase(materaHttp),
     consultarPanelPrincipal: new ConsultarPanelPrincipalUseCase(panelHttp),
+    consultarLogros: new ConsultarLogrosUseCase(logrosHttp),
   };
 }
 

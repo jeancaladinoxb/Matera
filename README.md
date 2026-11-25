@@ -24,6 +24,8 @@ frontend React construido con arquitectura hexagonal.
 - Activa dispositivos asociados con tokens JWT específicos para dispositivos.
 - Expone el panel principal del usuario con sus datos y todas sus materas
   vinculadas.
+- Gamificación: logros, puntos y niveles calculados a partir de las materas
+  vinculadas del usuario.
 - Incluye pantallas móviles y de escritorio con modo claro y modo oscuro,
   validación en vivo, estados de carga y mensajes accesibles.
 
@@ -359,9 +361,62 @@ envía un identificador de usuario.
 - Si la respuesta no contiene materas, la interfaz redirige a
   `/materas/vincular`.
 - Si la sesión venció, redirige a `/login`; ante otros errores permite reintentar.
-- La vinculación de plantas y la gamificación se muestran como funciones aún no
-  disponibles; no realizan llamadas a servicios inexistentes.
+- La vinculación de plantas se muestra como función aún no disponible.
+- La sección "Tus logros" consulta `GET /logros` y muestra nivel, puntos,
+  barra de progreso y las insignias desbloqueadas o pendientes.
 - El cierre de sesión conserva el flujo existente.
+
+## Gamificación
+
+El módulo `backend/gamificacion/` sigue la misma arquitectura hexagonal. Las
+reglas viven en el dominio (`EvaluadorDeLogros`); el frontend solo muestra el
+resultado. No requiere tablas nuevas: los logros se calculan en modo solo
+lectura desde `usuarios.fecha_creacion` y `materas.fecha_vinculacion`, así que
+la fecha de desbloqueo es estable entre consultas.
+
+| Logro | Condición | Puntos |
+| --- | --- | --- |
+| 🌱 Primer brote | Vincular la primera matera | 10 |
+| ⚡ Vinculación exprés | Vincular la primera matera en las 24 h siguientes al registro | 15 |
+| 🪴 Jardín en casa | Tener 3 materas vinculadas | 25 |
+| 📅 Un mes cuidando | 30 días desde la primera vinculación | 20 |
+| 🌳 Botánico urbano | Tener 5 materas vinculadas | 50 |
+
+Niveles: Semilla (0), Brote (20), Plántula (50), Jardinero (90) y Maestro
+jardinero (120).
+
+### `GET /logros`
+
+Requiere la cookie de sesión; el usuario se toma del JWT, nunca de la petición.
+
+```json
+{
+  "puntos": 25,
+  "nivel": { "numero": 2, "nombre": "Brote", "puntos_minimos": 20 },
+  "siguiente_nivel": { "numero": 3, "nombre": "Plántula", "puntos_minimos": 50 },
+  "logros": [
+    {
+      "codigo": "primer_brote",
+      "nombre": "Primer brote",
+      "descripcion": "Vincula tu primera matera.",
+      "icono": "🌱",
+      "puntos": 10,
+      "progreso": 1,
+      "meta": 1,
+      "desbloqueado": true,
+      "fecha_desbloqueo": "2026-11-01T15:30:00+00:00"
+    }
+  ]
+}
+```
+
+- `401`: sin sesión o sesión inválida.
+- `404`: usuario de la sesión no encontrado.
+- `500`: error interno genérico.
+
+Cuando exista el módulo de lecturas del sensor, se pueden agregar logros de
+cuidado (por ejemplo, rachas de humedad óptima) añadiendo reglas al
+`CATALOGO_LOGROS`, sin tocar el controlador ni el frontend.
 
 ## Reglas de validación
 
