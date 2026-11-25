@@ -19,6 +19,15 @@ from backend.panelPrincipal.infrastructure.adapters import (
     PostgresUsuarioRepositoryAdapter as PostgresPanelUsuarioRepositoryAdapter,
 )
 from backend.panelPrincipal.infrastructure.controllers import PanelPrincipalAdapter
+from backend.plantas.application.use_cases import (
+    ListarPlantasUseCase,
+    VincularPlantaAMateraUseCase,
+)
+from backend.plantas.infrastructure.adapters import (
+    PostgresAsignacionPlantaAdapter,
+    PostgresPlantaRepositoryAdapter,
+)
+from backend.plantas.infrastructure.controllers import PlantaController
 from backend.materas.application.use_cases import (
     ActivarDispositivoUseCase,
     ConsultarMateraDelUsuarioUseCase,
@@ -93,6 +102,13 @@ def create_app() -> Flask:
         PostgresEstadisticasRepositoryAdapter(connection_factory),
         RelojSistemaAdapter(),
     )
+    planta_catalogo = PostgresPlantaRepositoryAdapter(connection_factory)
+    listar_plantas = ListarPlantasUseCase(planta_catalogo, token_provider)
+    vincular_planta_a_matera = VincularPlantaAMateraUseCase(
+        planta_catalogo,
+        PostgresAsignacionPlantaAdapter(connection_factory),
+        token_provider,
+    )
     activar_dispositivo = ActivarDispositivoUseCase(
         matera_repository, claim_code_verifier, device_token_provider
     )
@@ -120,6 +136,11 @@ def create_app() -> Flask:
     LogrosAdapter(
         consultar_logros,
         lambda token: _session_usuario_id(token_provider, token),
+        session_cookie_settings.name,
+    ).register_routes(app)
+    PlantaController(
+        listar_plantas,
+        vincular_planta_a_matera,
         session_cookie_settings.name,
     ).register_routes(app)
     if _development_tools_enabled():
