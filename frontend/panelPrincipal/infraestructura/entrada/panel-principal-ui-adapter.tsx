@@ -36,7 +36,6 @@ export function PanelPrincipalUIAdapter({
   const solicitud = useRef<SolicitudPanel | null>(null);
   const [intento, setIntento] = useState(0);
   const [estado, setEstado] = useState<EstadoPantalla>({ tipo: "cargando" });
-  const [avisoPlantaId, setAvisoPlantaId] = useState<number | null>(null);
 
   useEffect(() => {
     let activo = true;
@@ -145,22 +144,17 @@ export function PanelPrincipalUIAdapter({
                   ? "Sin planta asignada"
                   : `Planta asignada #${matera.plantaId}`}
               </p>
-              {matera.sugerirVincularPlanta && (
-                <div>
-                  <button
-                    className="secondary-button"
-                    onClick={() => setAvisoPlantaId(matera.materaId)}
-                    type="button"
-                  >
-                    Vincular una planta
-                  </button>
-                  {avisoPlantaId === matera.materaId && (
-                    <p aria-live="polite" role="status">
-                      La vinculación de plantas estará disponible muy pronto.
-                    </p>
-                  )}
-                </div>
-              )}
+              <div>
+                <button
+                  className="secondary-button"
+                  onClick={() => navegar(`/materas/${matera.materaId}/planta`)}
+                  type="button"
+                >
+                  {matera.sugerirVincularPlanta
+                    ? "Vincular una planta"
+                    : "Cambiar planta"}
+                </button>
+              </div>
             </li>
           ))}
         </ul>

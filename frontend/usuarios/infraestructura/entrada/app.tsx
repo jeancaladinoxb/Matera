@@ -10,6 +10,7 @@ import { ComposicionUsuarios } from "../composicion/composicion-root";
 import { EventoSesion } from "../salida/session-http-adapter";
 import { ConsultarMateraDelUsuarioPort } from "../../../materas/aplicacion/puertos/entrada/consultar-matera-del-usuario-port";
 import { VincularMateraUIAdapter } from "../../../materas/infraestructura/entrada/vincular-matera-ui-adapter";
+import { PlantasUIAdapter } from "../../../plantas/infraestructura/entrada/plantas-ui-adapter";
 import { PantallaPrincipal } from "./pantalla-principal";
 import { RegistroUIAdapter } from "./registro-ui-adapter";
 import { SesionUIAdapter } from "./sesion-ui-adapter";
@@ -173,6 +174,23 @@ export function App({ composicion }: PropsApp) {
               </ProteccionSesion>
             }
             path="/materas/vincular"
+          />
+          <Route
+            element={
+              <ProteccionSesion
+                consultar={
+                  composicion.consultarMateraDelUsuario
+                }
+                vincularSiFalta={false}
+              >
+                <PlantasUIAdapter
+                  consultarPanel={composicion.consultarPanelPrincipal}
+                  listarPlantas={composicion.listarPlantas}
+                  vincularPlanta={composicion.vincularPlanta}
+                />
+              </ProteccionSesion>
+            }
+            path="/materas/:materaId/planta"
           />
           <Route element={<Navigate replace to="/login" />} path="/" />
           <Route element={<Navigate replace to="/login" />} path="*" />
