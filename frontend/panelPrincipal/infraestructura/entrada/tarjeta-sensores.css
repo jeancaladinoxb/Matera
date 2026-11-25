@@ -1,0 +1,13 @@
+.tarjeta-sensores .eyebrow {
+  color: var(--color-leaf);
+}
+
+.tarjeta-sensores .intro-copy {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tarjeta-sensores:nth-of-type(3) {
+    animation-delay: 280ms;
+  }
+}
