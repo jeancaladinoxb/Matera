@@ -34,6 +34,7 @@ export function VincularMateraUIAdapter({
   const navegar = useNavigate();
   const envioEnCurso = useRef(false);
   const camara = useRef(new CamaraQrAdapter());
+  const entradaFoto = useRef<HTMLInputElement>(null);
   const [modo, setModo] = useState<"camara" | "manual">("camara");
   const [mac, setMac] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -80,51 +81,67 @@ export function VincularMateraUIAdapter({
   }, [exito, navegar]);
 
   useEffect(() => {
-    return () => {
-      void camara.current.detener();
-    };
-  }, []);
+    if (modo !== "camara") return;
 
-  useEffect(() => {
-    if (modo !== "camara") {
-      void camara.current.detener();
-      return;
-    }
-
-    void iniciarCamara();
+    let activo = true;
+    void Promise.resolve().then(() => {
+      if (activo) return iniciarCamara(() => activo);
+    });
 
     return () => {
-      void camara.current.detener();
+      activo = false;
+      void camara.current.detener().catch(() => undefined);
     };
   }, [modo]);
 
-  async function iniciarCamara() {
+  async function iniciarCamara(estaActivo: () => boolean) {
     setError("");
     const problema = await camara.current.iniciar(
       "matera-qr-lector",
-      async (textoQr) => {
-        if (envioEnCurso.current) return;
-        envioEnCurso.current = true;
-        setCargando(true);
-        setError("");
-        await camara.current.detener();
-
-        try {
-          const resultado = await vincularDesdeQr.vincularDesdeQr(textoQr);
-          if (resultado.estado === "error") {
-            setError(mensajeDeError(resultado.error));
-            setModo("manual");
-            return;
-          }
-          setExito(true);
-        } finally {
-          envioEnCurso.current = false;
-          setCargando(false);
-        }
+      (textoQr) => {
+        if (estaActivo()) void enviarQr(async () => textoQr);
       },
     );
-    if (problema) {
+    if (problema && estaActivo()) {
       setError(mensajeCamara(problema));
+    }
+  }
+
+  async function enviarQr(leer: () => Promise<string>) {
+    if (envioEnCurso.current) return;
+    envioEnCurso.current = true;
+    setCargando(true);
+    setError("");
+
+    try {
+      await camara.current.detener().catch(() => undefined);
+
+      let textoQr: string;
+      try {
+        textoQr = await leer();
+      } catch {
+        setError(
+          "No pudimos leer el QR. Mantén el código completo y enfocado dentro del recuadro, o prueba con una foto.",
+        );
+        return;
+      }
+
+      try {
+        const resultado = await vincularDesdeQr.vincularDesdeQr(textoQr);
+        if (resultado.estado === "error") {
+          setError(mensajeDeError(resultado.error));
+          setModo("manual");
+          return;
+        }
+        setExito(true);
+      } catch {
+        setError(
+          "El QR se leyó, pero no pudimos completar la vinculación. Revisa tu conexión o ingresa los datos manualmente.",
+        );
+      }
+    } finally {
+      envioEnCurso.current = false;
+      setCargando(false);
     }
   }
 
@@ -176,6 +193,13 @@ export function VincularMateraUIAdapter({
         Escanea el QR que viene con tu matera.
       </p>
 
+      {modo === "camara" && (
+        <p className="field-hint">
+          Mantén el QR completo visible en el visor. Se leerá automáticamente
+          cuando la cámara lo enfoque.
+        </p>
+      )}
+
       <div className="matera-mode-tabs" aria-label="Método de vinculación">
         <button
           aria-pressed={modo === "camara"}
@@ -202,6 +226,29 @@ export function VincularMateraUIAdapter({
             className="matera-camera"
             id="matera-qr-lector"
           />
+          <div hidden id="matera-qr-foto" />
+          <input
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(evento) => {
+              const foto = evento.currentTarget.files?.[0];
+              evento.currentTarget.value = "";
+              if (foto) {
+                void enviarQr(() => camara.current.leerFoto("matera-qr-foto", foto));
+              }
+            }}
+            ref={entradaFoto}
+            type="file"
+          />
+          <button
+            className="secondary-button"
+            disabled={cargando}
+            onClick={() => entradaFoto.current?.click()}
+            type="button"
+          >
+            {cargando ? "Leyendo QR…" : "Probar con una foto"}
+          </button>
           <button
             className="text-link matera-manual-link"
             onClick={() => void mostrarModoManual()}

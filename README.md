@@ -164,6 +164,58 @@ npm run dev
 
 Vite normalmente abre `http://localhost:5173`.
 
+### HTTPS local con Nginx
+
+En macOS, instala Nginx y mkcert y registra la CA local en el llavero:
+
+```bash
+brew install nginx mkcert
+mkcert -install
+```
+
+Con PostgreSQL disponible y el backend anterior detenido manualmente si ocupa
+el puerto `5001`, inicia desde la raíz del proyecto:
+
+```bash
+./scripts/dev-https.sh
+```
+
+El script detecta la IPv4 de la interfaz predeterminada, inicia Flask, Vite y
+Nginx y muestra una URL como `https://192.168.1.20:5443`. Nginx escucha solo en
+esa IP, enruta `/api/` al backend, activa `Secure` para la cookie y mantiene el
+WebSocket de HMR de Vite. El teléfono debe estar en la misma Wi-Fi y confiar la
+CA local de mkcert. Para instalarla, transfiere únicamente el archivo
+`rootCA.pem` indicado por `mkcert -CAROOT` al teléfono; nunca transfieras
+`rootCA-key.pem`. En iPhone, instala el perfil y habilita su confianza completa
+en **Ajustes > General > Información > Ajustes de confianza de certificados**.
+En Android, instala el archivo como certificado de CA desde los ajustes de
+seguridad (el nombre de la opción varía por fabricante).
+
+La configuración y los certificados de desarrollo se guardan fuera del
+repositorio en `~/Library/Application Support/CuidaTuMate/`. El script no
+detiene servicios preexistentes y finaliza únicamente los procesos que inició.
+Para validar la configuración TLS de Nginx sin iniciar la aplicación:
+
+```bash
+./scripts/dev-https.sh --check
+```
+
+#### Diferencias frente a HTTP
+
+- En HTTP, el navegador puede usar la cámara en `localhost`, pero no desde una
+  dirección IP de la red local. Para escanear desde el teléfono se usa HTTPS en
+  `https://<IP_DEL_MAC>:5443`, que proporciona un contexto seguro para la cámara.
+- El navegador se conecta por HTTPS a Nginx. Nginx termina TLS y reenvía `/api/`
+  a Flask por HTTP en `127.0.0.1:5001`; ese puerto interno no se expone a la red.
+  Las peticiones del frontend usan `https://<IP_DEL_MAC>:5443/api`.
+- El canal HMR de Vite también usa WSS a través del puerto `5443`. El puerto
+  anterior `8443` ya no se usa.
+- Esta configuración local no habilita HTTPS automáticamente en el firmware
+  ESP32. El comando `setbackend` del firmware actual solo acepta direcciones
+  `http://`; para que el dispositivo use HTTPS se debe actualizar el firmware
+  para admitir TLS y validar una CA confiable. No desactives la validación del
+  certificado ni compartas `rootCA-key.pem`.
+
 ## API de usuarios
 
 ### `POST /registro`
