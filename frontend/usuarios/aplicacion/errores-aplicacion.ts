@@ -5,5 +5,6 @@ export type ErrorAplicacion =
   | { readonly tipo: "sesion_vencida" }
   | { readonly tipo: "matera_codigo_invalido" }
   | { readonly tipo: "matera_ya_vinculada" }
+  | { readonly tipo: "no_encontrado" }
   | { readonly tipo: "conexion" }
   | { readonly tipo: "desconocido" };

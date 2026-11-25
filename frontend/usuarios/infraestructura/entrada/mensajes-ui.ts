@@ -14,6 +14,8 @@ export function mensajeDeError(error: ErrorAplicacion): string {
       return "No encontramos esa matera o el código no es válido.";
     case "matera_ya_vinculada":
       return "Esta matera ya está vinculada.";
+    case "no_encontrado":
+      return "No encontramos esa matera o esa planta.";
     case "conexion":
       return "No hay conexión. Revisa tu internet e inténtalo de nuevo.";
     case "desconocido":
