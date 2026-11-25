@@ -76,7 +76,7 @@ class PostgresPanelAdapterTests(unittest.TestCase):
 
     def test_matera_lookup_filters_by_user_and_returns_all_linked_rows(self) -> None:
         connection = FakeConnection(
-            [(12, "E072A1D55B18"), (13, "246F28AB1234")]
+            [(12, "E072A1D55B18", None), (13, "246F28AB1234", 5)]
         )
         adapter = PostgresMateraRepositoryAdapter(lambda: connection)
 
@@ -86,7 +86,9 @@ class PostgresPanelAdapterTests(unittest.TestCase):
             [(matera.matera_id, matera.dispositivo_id) for matera in materas],
             [(12, 12), (13, 13)],
         )
+        self.assertEqual([matera.planta_id for matera in materas], [None, 5])
         query, parameters = connection.statements[1]
+        self.assertIn("SELECT id, mac, planta_id FROM materas", query)
         self.assertIn("WHERE usuario_id = %s AND estado = %s", query)
         self.assertEqual(parameters, (7, "vinculada"))
         self.assertTrue(connection.read_only)

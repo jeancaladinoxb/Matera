@@ -21,11 +21,15 @@ class PostgresMateraRepositoryAdapter(
         self, usuario_id: int
     ) -> Tuple[MateraPanel, ...]:
         rows = self._execute(
-            "SELECT id, mac FROM materas "
+            "SELECT id, mac, planta_id FROM materas "
             "WHERE usuario_id = %s AND estado = %s ORDER BY id",
             (usuario_id, "vinculada"),
         )
         return tuple(
-            MateraPanel(matera_id=int(row[0]), mac=str(row[1]))
+            MateraPanel(
+                matera_id=int(row[0]),
+                mac=str(row[1]),
+                planta_id=None if row[2] is None else int(row[2]),
+            )
             for row in rows
         )

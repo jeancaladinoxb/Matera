@@ -5,6 +5,9 @@ import uuid
 import psycopg2
 import pytest
 
+from backend.panelPrincipal.infrastructure.adapters import (
+    PostgresMateraRepositoryAdapter as PostgresPanelMateraRepositoryAdapter,
+)
 from backend.plantas.application.use_cases import VincularPlantaAMateraUseCase
 from backend.plantas.domain import MateraNoEncontradaError, NivelLuz
 from backend.plantas.infrastructure.adapters import (
@@ -131,6 +134,17 @@ class PostgresPlantasIntegrationTests(unittest.TestCase):
 
         self.assertEqual(self._planta_de(1), self.pothos)
         self.assertIsNone(self._planta_de(2))
+
+    def test_el_panel_lee_la_planta_asignada(self) -> None:
+        panel = PostgresPanelMateraRepositoryAdapter(lambda: psycopg2.connect(TEST_DATABASE_URL))
+        self.asignacion.asignar(self.usuario_ids[0], self.matera_ids[1], self.pothos)
+
+        materas = panel.listar_vinculadas_por_usuario(self.usuario_ids[0])
+
+        self.assertEqual(
+            {m.matera_id: m.planta_id for m in materas},
+            {self.matera_ids[0]: None, self.matera_ids[1]: self.pothos},
+        )
 
     # Ayudas
 
