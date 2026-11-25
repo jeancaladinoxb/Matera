@@ -496,3 +496,67 @@ correctamente.
 - `/materas/vincular`: vinculación mediante cámara QR o datos manuales.
 
 El proyecto usa React Router y admite navegación directa a esas rutas.
+
+## Vinculación de plantas
+
+Cada matera vinculada puede tener una planta (especie) del catálogo. Elegir otra
+reemplaza la anterior y repetir la misma es válido.
+
+### Migración `db/003_plantas.sql`
+
+Requiere `db/001_usuarios.sql` y `db/002_materas.sql`. Crea la tabla `plantas`
+(catálogo con cinco especies iniciales: Monstera, Calathea, Sansevieria, Pothos y
+Bonsai, este último con *Ficus microcarpa*) y agrega la columna nula
+`materas.planta_id`. Los rangos ideales de humedad, temperatura y luz son
+**provisionales**: están marcados en el comentario de la migración y deben revisarse
+antes de usarlos en reglas de negocio.
+
+```bash
+psql -d matera -v ON_ERROR_STOP=1 --single-transaction -f db/003_plantas.sql
+```
+
+Aplícala también a la base de pruebas (`psql "$TEST_DATABASE_URL" ...`) antes de
+ejecutar `pytest -m integration`. Para deshacerla:
+`ALTER TABLE materas DROP COLUMN planta_id; DROP TABLE plantas;`.
+
+### `GET /plantas`
+
+Requiere la cookie de sesión. Respuesta `200`:
+
+```json
+{
+  "plantas": [
+    {
+      "id": 1,
+      "slug": "monstera",
+      "nombre_comun": "Monstera",
+      "nombre_cientifico": "Monstera deliciosa",
+      "luz": "indirecta",
+      "riego": "moderado"
+    }
+  ]
+}
+```
+
+`401`: cookie ausente o sesión inválida. Los rangos ideales todavía no se exponen.
+
+### `POST /materas/<matera_id>/planta`
+
+Requiere la cookie de sesión; el usuario sale siempre de la cookie, nunca del cuerpo.
+Cuerpo `{"planta_id": 2}` (entero positivo). Respuesta `200`:
+
+```json
+{ "mensaje": "Planta vinculada", "matera_id": 12, "planta_id": 2 }
+```
+
+- `400`: cuerpo que no es JSON, falta `planta_id` o no es un entero positivo.
+- `401`: cookie ausente o sesión inválida.
+- `404` `{"error": "Recurso no encontrado"}`: la matera no existe, no está vinculada o
+  es de otro usuario, o la planta no existe (mismo mensaje para no revelar cuál).
+- `500`: error interno genérico.
+
+### Interfaz
+
+La ruta `/materas/:materaId/planta` ("¿Qué planta vas a cuidar?") se abre desde el
+botón de cada tarjeta del panel principal ("Vincular una planta", o "Cambiar planta"
+si la matera ya tiene una). Al vincular con éxito vuelve a `/inicio`.
