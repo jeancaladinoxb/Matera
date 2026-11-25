@@ -6,8 +6,12 @@ import { ErrorAplicacion } from "../../../usuarios/aplicacion/errores-aplicacion
 import { ResultadoAplicacion } from "../../../usuarios/aplicacion/resultado-aplicacion";
 import { mensajeDeError } from "../../../usuarios/infraestructura/entrada/mensajes-ui";
 import { PanelPrincipal } from "../../dominio/panel-principal";
+<<<<<<< Updated upstream
 import { ConsultarLogrosPort } from "../../../gamificacion/aplicacion/puertos/entrada/consultar-logros-port";
 import { LogrosUIAdapter } from "../../../gamificacion/infraestructura/entrada/logros-ui-adapter";
+=======
+import { TarjetaSensores } from "./tarjeta-sensores";
+>>>>>>> Stashed changes
 
 import "./panel-principal.css";
 
@@ -174,6 +178,8 @@ export function PanelPrincipalUIAdapter({
           )}
         </section>
       )}
+
+      <TarjetaSensores />
     </div>
   );
 }
